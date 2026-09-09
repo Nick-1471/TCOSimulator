@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vehicle TCO + CO₂ Calculator (South Africa)</title>
+<style>
+  :root{
+    --ice:#5b6b7a; --hev:#1a7d3c; --evg:#2563d4; --evs:#16a34a;
+    --petrol:#d9822b; --elec:#c0392b;
+    --bg:#f6f7f9; --card:#fff; --ink:#1f2733; --muted:#6b7480; --line:#e3e7ec; --accent:#1a73e8;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+       background:var(--bg);color:var(--ink);line-height:1.5;padding:22px}
+  .wrap{max-width:1040px;margin:0 auto}
+  h1{font-size:25px;margin:0 0 4px}
+  .sub{color:var(--muted);margin:0 0 20px;font-size:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:18px;
+        box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 14px}
+  h3{font-size:14px;margin:16px 0 6px;color:var(--ink)}
+  .presets{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+  .presets button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 14px;font-size:13px;
+                  font-weight:600;cursor:pointer;color:var(--ink)}
+  .presets button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .pdesc{font-size:12px;color:var(--muted);margin-top:8px;min-height:16px}
+  .controls{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px 26px}
+  @media(max-width:760px){.controls{grid-template-columns:1fr 1fr}}
+  @media(max-width:520px){.controls{grid-template-columns:1fr}}
+  .ctrl label{display:flex;justify-content:space-between;font-weight:600;font-size:13px;margin-bottom:6px}
+  .ctrl .val{color:var(--accent);font-variant-numeric:tabular-nums}
+  input[type=range]{width:100%;accent-color:var(--accent);height:4px}
+  .grouplab{grid-column:1/-1;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+            color:var(--muted);border-top:1px dashed var(--line);padding-top:12px;margin:2px 0 -4px}
+  .toggles{display:flex;gap:22px;flex-wrap:wrap;margin-top:12px}
+  .toggles label{font-size:13px;font-weight:600;display:flex;gap:8px;align-items:center;cursor:pointer}
+  .hint{font-size:11px;color:var(--muted);margin-top:3px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:right;padding:9px 8px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+  th:first-child,td:first-child{text-align:left}
+  thead th{font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted)}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:7px;vertical-align:middle}
+  td.win{background:#eef6f0;font-weight:700}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr}}
+  .legend{display:flex;gap:16px;font-size:12px;margin:4px 0 10px;flex-wrap:wrap;align-items:center}
+  .legend i{width:11px;height:11px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:middle}
+  .verdict{font-size:13px;background:#f0f4f9;border-radius:9px;padding:12px 14px;margin-top:14px;color:#33414f}
+  .assump{font-size:12px;color:var(--muted);columns:2;column-gap:30px}
+  @media(max-width:600px){.assump{columns:1}}
+  .assump li{margin-bottom:4px}
+  .flag{background:#fdf6e3;border-left:4px solid var(--petrol);border-radius:8px;padding:10px 14px;font-size:12px;color:#5a4326;margin-top:12px}
+  .calcnote{font-size:13px;color:#33414f}
+  .calcnote li{margin-bottom:7px}
+  .calcnote b{color:var(--ink)}
+  .tow{background:#eef3fb;border-left:4px solid var(--accent);border-radius:8px;padding:14px 16px;font-size:13px;color:#2c3a4a}
+  .tow li{margin-bottom:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Vehicle TCO + Cradle-to-Grave CO₂ Calculator</h1>
+  <p class="sub">South African conditions, four options: Petrol ICE · Plugless Hybrid (HEV) · EV on grid · EV on home solar. Purchase prices for all three powertrains are now adjustable, so you can run a fair like-for-like. Figures are nominal Rand. <strong>Working assumptions, to be source-cited in a later pass.</strong></p>
+
+  <div class="card">
+    <h2>Scenario presets</h2>
+    <div class="presets" id="presets">
+      <button data-p="central" class="on">Central case (Corolla Cross like-for-like)</button>
+      <button data-p="budget">Budget city car</button>
+      <button data-p="heavy">Heavy-duty / towing</button>
+      <button data-p="gemini">EV worst-case (10-yr cliff)</button>
+      <button data-p="evfriendly">EV-favourable</button>
+      <button data-p="premium">Premium like-for-like (R750k vs R750k)</button>
+      <button data-p="rapid">Rapid-charging reliant</button>
+    </div>
+    <div class="pdesc" id="pdesc"></div>
+  </div>
+
+  <div class="card">
+    <h2>Adjust the variables</h2>
+    <div class="controls">
+      <div class="grouplab">Purchase prices (set these to compare like with like)</div>
+      <div class="ctrl"><label>ICE price <span class="val">R<span id="icePriceV"></span>k</span></label><input type="range" id="icePrice" min="150000" max="650000" step="10000"><div class="hint">Corolla Cross 1.8 petrol ~R425k (central). Budget hatch from ~R250k.</div></div>
+      <div class="ctrl"><label>Hybrid price <span class="val">R<span id="hevPriceV"></span>k</span></label><input type="range" id="hevPrice" min="350000" max="900000" step="10000"><div class="hint">Corolla Cross HEV ~R506k (central). Cheapest HEV from ~R440k.</div></div>
+      <div class="ctrl"><label>EV price <span class="val">R<span id="evPriceV"></span>k</span></label><input type="range" id="evPrice" min="320000" max="1200000" step="10000"><div class="hint">C-segment EV ~R650k (central: GWM Ora 5 to BYD Atto 3). City EV from ~R340k. Sets EV #2 too.</div></div>
+
+      <div class="grouplab">Usage &amp; energy</div>
+      <div class="ctrl"><label>Petrol price (year 1) <span class="val">R<span id="petrol0V"></span>/L</span></label><input type="range" id="petrol0" min="15" max="35" step="0.10"><div class="hint">Set your current pump price. Coastal 95 ULP ~R24.33 (Aug 2026); repriced monthly.</div></div>
+      <div class="ctrl"><label>Electricity price (year 1) <span class="val">R<span id="grid0V"></span>/kWh</span></label><input type="range" id="grid0" min="1" max="8" step="0.10"><div class="hint">Set your municipal tariff. NMB ~R4.50/kWh (Jul 2026); varies by municipality.</div></div>
+      <div class="ctrl"><label>Annual mileage <span class="val"><span id="kmYrV"></span> km</span></label><input type="range" id="kmYr" min="5000" max="60000" step="1000"><div class="hint">Distance driven per year.</div></div>
+      <div class="ctrl"><label>Petrol escalation <span class="val"><span id="petrolEscV"></span>%/yr</span></label><input type="range" id="petrolEsc" min="0" max="20" step="0.5"><div class="hint">Annual petrol price rise (hist. ~7.7%).</div></div>
+      <div class="ctrl"><label>Electricity escalation <span class="val"><span id="gridEscV"></span>%/yr</span></label><input type="range" id="gridEsc" min="0" max="20" step="0.5"><div class="hint">Annual grid tariff rise (hist. ~11.9%).</div></div>
+      <div class="ctrl"><label>Grid CO₂ intensity <span class="val"><span id="gridCO2V"></span> kg/kWh</span></label><input type="range" id="gridCO2" min="0.1" max="1.1" step="0.05"><div class="hint">SA coal grid ≈ 0.95; cleaner grid lower.</div></div>
+      <div class="ctrl"><label>General inflation <span class="val"><span id="genInflV"></span>%/yr</span></label><input type="range" id="genInfl" min="0" max="12" step="0.5"><div class="hint">Insurance, service, tyres.</div></div>
+      <div class="ctrl"><label>EV lifespan <span class="val"><span id="evLifeV"></span> yrs</span></label><input type="range" id="evLife" min="6" max="20" step="1"><div class="hint">Before write-off / pack obsolescence forces EV #2.</div></div>
+      <div class="ctrl"><label>Home solar system cost <span class="val">R<span id="solarCapexV"></span>k</span></label><input type="range" id="solarCapex" min="0" max="500000" step="10000"><div class="hint">Oversized PV+battery to charge overnight.</div></div>
+      <div class="grouplab">Charging speed (traction-battery ageing)</div>
+      <div class="ctrl"><label>DC fast-charge share <span class="val"><span id="fastShareV"></span>%</span></label><input type="range" id="fastShare" min="0" max="100" step="5"><div class="hint">Share of charging done on DC rapid chargers. Higher share ages the pack faster.</div></div>
+    </div>
+    <div class="toggles">
+      <label><input type="checkbox" id="cliff"> Hard 10-yr EV cliff (R0 residual at write-off)</label>
+      <label><input type="checkbox" id="heavyDuty"> Heavy-duty / towing (higher draw, faster tyre &amp; battery wear)</label>
+      <label><input type="checkbox" id="hotClimate"> Hot climate / weak battery cooling (amplifies fast-charge damage)</label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Why fuel and electricity prices are adjustable</h2>
+    <div class="calcnote">
+      <p style="margin-top:0">Fuel and electricity prices change often and lie outside any single forecast, so they are set as sliders you move to today's local values rather than baked-in constants:</p>
+      <ul style="margin:0;padding-left:18px">
+        <li><b>Petrol is repriced every month.</b> The Department of Mineral Resources and Energy sets the pump price on the first Wednesday of each month from the Basic Fuel Price (international petrol prices plus the rand/US dollar exchange rate) plus fixed taxes and levies. Coastal 95 ULP was about R25.23 in July 2026 and eased to about R24.33 in August 2026, so any fixed figure dates within weeks.</li>
+        <li><b>Electricity tariffs vary by municipality and reset annually.</b> Nelson Mandela Bay moved to about R4.50/kWh on 1 July 2026; other metros and Eskom Direct customers differ. There is no single national retail rate.</li>
+        <li><b>Set your own numbers.</b> Enter the current pump price and your municipal tariff and the model gives a result you can trust for today. The escalation sliders then project each price forward at your chosen annual rate, so the petrol-versus-electricity escalation gap still drives the long-run divergence.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>Total cost of ownership (nominal ZAR)</h2>
+      <table><thead><tr><th>Horizon</th>
+        <th><span class="dot" style="background:var(--ice)"></span>ICE</th>
+        <th><span class="dot" style="background:var(--hev)"></span>HEV</th>
+        <th><span class="dot" style="background:var(--evg)"></span>EV grid</th>
+        <th><span class="dot" style="background:var(--evs)"></span>EV solar</th></tr></thead>
+        <tbody id="tcoBody"></tbody></table>
+      <div class="hint" style="margin-top:8px">Lowest cost per row highlighted. Net of resale; includes capital, energy, insurance, service, tyres and (for solar EV) the home charging system.</div>
+    </div>
+    <div class="card">
+      <h2>Cradle-to-grave CO₂ (kg)</h2>
+      <table><thead><tr><th>Horizon</th>
+        <th><span class="dot" style="background:var(--ice)"></span>ICE</th>
+        <th><span class="dot" style="background:var(--hev)"></span>HEV</th>
+        <th><span class="dot" style="background:var(--evg)"></span>EV grid</th>
+        <th><span class="dot" style="background:var(--evs)"></span>EV solar</th></tr></thead>
+        <tbody id="co2Body"></tbody></table>
+      <div class="hint" style="margin-top:8px">Lowest CO₂ per row highlighted. Includes manufacturing (incl. EV #2 if rebuilt), operating, tyre manufacturing and the solar system footprint.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Beyond CO₂, battery materials &amp; disposal burden (kg of lithium-ion critical minerals)</h2>
+    <table><thead><tr><th>Horizon</th>
+      <th><span class="dot" style="background:var(--ice)"></span>ICE</th>
+      <th><span class="dot" style="background:var(--hev)"></span>HEV</th>
+      <th><span class="dot" style="background:var(--evg)"></span>EV grid</th>
+      <th><span class="dot" style="background:var(--evs)"></span>EV solar</th></tr></thead>
+      <tbody id="batBody"></tbody></table>
+    <div class="flag" style="border-left-color:#7a5230;background:#f7f1ea">
+      This is the footprint the CO₂ tables do <b>not</b> capture: lithium, nickel, cobalt, manganese, graphite and copper that must be <b>mined, refined and eventually disposed of</b>. Each EV build is ~185 kg of these minerals (a whole EV uses ~207 kg of minerals vs ~34 kg for a petrol car, about 6×, per the IEA); each home-storage battery adds ~55 kg and is replaced roughly every 12 years. <b>The solar EV, the CO₂ winner, carries the heaviest materials burden of all</b> (car battery + home storage + every replacement), which is precisely why a CO₂-only headline can be greenwashing. The ICE figure is ~0 here because its lead-acid starter battery sits in a mature ~99%-recycled loop. Mining these minerals also brings water use, toxic tailings and (for cobalt) sourcing concerns; lithium-ion recycling is improving but is not yet at scale in South Africa. See the report for sources and the even-handed comparison with ICE's own non-CO₂ burdens.
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Charging speed and battery life (slow AC vs rapid DC)</h2>
+    <p class="calcnote" style="margin-top:0">Rapid DC charging is increasingly favoured to cut charging time, but forcing high current into the pack drives heat and lithium plating, which age the traction battery faster. The effect is modest for well-cooled packs charged occasionally, but grows with heavy reliance, high state-of-charge fast charges and heat, so South Africa's warm climate and cheaper, less-actively-cooled EVs sit at the more damaging end. Faster ageing brings the battery (or whole-vehicle) replacement forward: an added cost, and an added burden in the mining and disposal value chain that a running-cost or tailpipe view never shows. The table isolates that effect at your current settings, a 20-year comparison of an EV charged entirely on slow AC against one charged entirely on rapid DC.</p>
+    <table><thead><tr><th>Over 20 years (grid EV, current settings)</th>
+      <th><span class="dot" style="background:var(--evs)"></span>100% slow (AC)</th>
+      <th><span class="dot" style="background:var(--elec)"></span>100% rapid (DC)</th>
+      <th>Rapid penalty</th></tr></thead>
+      <tbody id="chargeBody"></tbody></table>
+    <div class="hint" style="margin-top:8px">The "rapid penalty" column is the extra cost, carbon and critical-mineral mass caused purely by charging fast rather than slow, at today's slider settings. Turn on "Hot climate / weak battery cooling" to see it amplify.</div>
+    <div class="verdict" id="chargeNote"></div>
+    <div class="flag">
+      Evidence, in brief: an Idaho National Laboratory road test of identical Nissan Leafs found about 24.5% capacity loss on slow (Level 2) charging against about 27% on DC fast charging over 50,000 miles; other studies put the extra loss from heavy fast charging at roughly 3 to 9 percentage points, while well-cooled packs (for example Tesla) can show little difference. Heat is the main amplifier, and high charge rates promote lithium plating that permanently cuts capacity. These are modelled estimates for illustration, tunable with the "DC fast-charge share" slider, not a manufacturer warranty figure.
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Cumulative cost forecast to 2035</h2>
+    <div class="legend">
+      <span><i style="background:var(--ice)"></i>ICE</span><span><i style="background:var(--hev)"></i>HEV</span>
+      <span><i style="background:var(--evg)"></i>EV grid</span><span><i style="background:var(--evs)"></i>EV solar</span>
+      <span style="margin-left:auto;color:var(--muted)">Running total spend, 2026 → 2035</span>
+    </div>
+    <div id="forecast"></div>
+  </div>
+
+  <div class="card">
+    <h2>What the model is saying right now</h2>
+    <div class="verdict" id="verdict"></div>
+    <div class="flag" id="flag"></div>
+  </div>
+
+  <div class="card">
+    <h2>How the 5 / 10 / 15 / 20-year costs are calculated</h2>
+    <p class="calcnote" style="margin-top:0">The model runs <b>year by year</b> and adds up the running total to the end of each horizon. Every horizon is the same six building blocks, only the number of years (and so the compounding) changes:</p>
+    <ol class="calcnote">
+      <li><b>Capital (depreciation, not sticker price).</b> The purchase price minus what the vehicle is still worth at the end of the horizon. Resale value falls with age on a per-type curve, EVs fastest, ICE slowest, so over 5 years a car gives back most of its price, but over 20 years almost none. This is why a R750k EV adds only ~R333k of capital at 5 years.</li>
+      <li><b>Vehicle replacement.</b> If a vehicle reaches its lifespan before the horizon ends, it is retired and a new one is bought (for an EV under the hard cliff the old one is worth R0). That adds a second purchase price and a second slug of manufacturing CO₂, the main reason EV totals jump between 10 and 15 years.</li>
+      <li><b>Energy.</b> Fuel or electricity for that year's kilometres, priced at the <b>escalated</b> rate for the year, petrol and electricity compound at the escalation sliders, so later years cost more. The solar EV pays almost nothing here; its energy cost sits in the solar-system line instead.</li>
+      <li><b>Insurance + service.</b> Annual amounts, rising each year at general inflation.</li>
+      <li><b>Tyres.</b> A fresh set is charged each time cumulative distance crosses the tyre interval (shorter for heavier EVs), at the inflated price of that year.</li>
+      <li><b>Home solar system</b> (solar EV only). The upfront cost is booked in year 1, with a storage-battery replacement roughly every 12 years.</li>
+    </ol>
+    <p class="calcnote"><b>The CO₂ table is built the same way</b>, manufacturing carbon for each build (including any replacement), operating carbon (petrol burned, or grid kWh × grid intensity; solar ≈ 0), tyre-manufacturing carbon, and the solar system's footprint. <b>Why longer horizons punish the grid EV:</b> escalation compounds, more tyre sets are consumed, and a write-off forces a second build, so the gap widens with time rather than closing. The "forecast to 2035" chart simply plots this cumulative running total for each calendar year.</p>
+  </div>
+
+  <div class="card">
+    <h2>Choosing inputs if towing / heavy-duty is a requirement</h2>
+    <div class="tow">
+      <ul style="margin:0;padding-left:18px">
+        <li><b>Turn on the “Heavy-duty / towing” toggle.</b> It lifts energy draw ~60%, shortens tyre life ~30%, and caps EV life near 9-10 years, the realistic picture for a vehicle hauling loads, a caravan or a boat.</li>
+        <li><b>Do not use the budget city-car EV price (~R340k).</b> Those EVs (e.g. BYD Dolphin Surf, ~232 km range, 55 kW) are not rated to tow. For a tow-capable EV set the EV price realistically high (R900k+ for an EV bakkie or large SUV, of which there are very few in SA).</li>
+        <li><b>Consider switching the hard 10-yr cliff on for utility EVs.</b> Heavy use degrades the traction battery faster; once it drops below ~70% state of health, towing range and payload utility fall away and write-off risk climbs.</li>
+        <li><b>Stress-test the energy story.</b> Towing can nearly double consumption, so push mileage up and keep electricity escalation high to see how exposed a grid-tied utility EV becomes.</li>
+        <li><b>Pragmatic read.</b> For genuine towing/heavy-duty work in SA today, a diesel/petrol bakkie or a hybrid is usually the sensible choice; the EV case only holds for the solar-charged option, and only if it survives long enough to amortise its much larger upfront cost.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Key assumptions (central case, adjust above)</h2>
+    <ul class="assump">
+      <li>Default prices (Corolla Cross-class like-for-like): petrol R425k · hybrid R506k · EV R650k (all adjustable).</li>
+      <li>Efficiency: ICE 6.5 L · HEV 4.3 L · EV 18 kWh /100 km.</li>
+      <li>Year-1 energy: petrol R24.33/L (coastal 95 ULP, Aug 2026) · grid R4.50/kWh (Nelson Mandela Bay tariff, 1 July 2026) · solar ~R0.30/kWh O&amp;M. Both adjustable above.</li>
+      <li>Insurance/yr: ICE R15k · HEV R20k · EV R32k.</li>
+      <li>Tyre life: ICE/HEV 55,000 km · EV 45,000 km (heavier).</li>
+      <li>Tyre set: ICE/HEV R6,000 · EV R8,000; CO₂ 120 / 140 kg.</li>
+      <li>Embodied CO₂: ICE 6.0t · HEV 7.5t · EV 13.5t per build.</li>
+      <li>Operating CO₂: petrol 2.31 kg/L; grid 0.95 kg/kWh; solar ≈0.</li>
+      <li>Solar home system: R250k + R3.8t CO₂; battery swap ~12 yrs.</li>
+      <li>Lifespan: ICE 18 · HEV 16 · EV 12 yrs (central); cliff = 10.</li>
+      <li>Heavy-duty: energy ×1.6, tyre life ×0.7, EV life capped 9-10 yr.</li>
+      <li>Fast-charge ageing: 100% DC rapid trims EV life ~15% (normal) or ~30% (hot climate / weak cooling), plus an 8-15% resale haircut for a heavily fast-charged pack.</li>
+    </ul>
+    <div class="hint" style="margin-top:10px">All figures are transparent working estimates pending source citations. SA prices (mid-2026): cheapest EV ~R340k (BYD Dolphin Surf), cheapest HEV ~R440k (Chery Tiggo Cross), Corolla Cross petrol R420k / HEV R501k.</div>
+  </div>
+</div>
+
+<script>
+const BASE = {
+  ICE:{price:300000,L100:6.5,ins:15000,svc:4500,mfgCO2:6000,tyreInt:55000,tyreSet:6000,tyreCO2:120,life:18,dk:0.902},
+  HEV:{price:450000,L100:4.3,ins:20000,svc:5500,mfgCO2:7500,tyreInt:55000,tyreSet:6500,tyreCO2:120,life:16,dk:0.9173},
+  EV:{price:750000,kWh100:18,ins:32000,svc:2500,mfgCO2:13500,tyreInt:45000,tyreSet:8000,tyreCO2:140,life:12,dk:0.847}
+};
+const PETROL_CO2=2.31, DK_FLOOR=0.03;
+// Lithium-ion battery critical-mineral mass per build (kg), the "beyond-CO2" mining/disposal burden.
+// ICE 12V lead-acid excluded (mature ~99% recycled loop). HEV small traction pack. EV large pack. Solar home storage per unit.
+const BATMAT={ICE:0,HEV:35,EV:185}, SOLAR_BAT_MAT=55;
+const COLS=["ICE","HEV","EVgrid","EVsolar"], COLC={ICE:'var(--ice)',HEV:'var(--hev)',EVgrid:'var(--evg)',EVsolar:'var(--evs)'};
+const HOR=[5,10,15,20];
+
+function defaults(){return{kmYr:20000,petrol0:24.33,petrolEsc:0.07,grid0:4.5,gridEsc:0.11,gridCO2:0.95,
+  solarOpRate:0.30,solarCO2:0.05,genInfl:0.05,vehInfl:0.05,evLife:12,cliff:false,evResZero:false,
+  heavyDuty:false,dutyEnergy:1.6,dutyTyre:0.7,evHeavyLife:9,tyreIntICE:null,tyreIntEV:null,
+  fastShare:0,hotClimate:false,effEvLife:null,resaleHaircut:0,
+  solarCapex:250000,solarMfgCO2:3800,solarBattLife:12,solarBattCost:90000,solarBattCO2:1500,
+  icePrice:425000,hevPrice:506000,evPrice:650000,mfgEV:null,
+  iceL100:null,iceIns:null,iceDk:null,hevL100:null,hevIns:null};}
+
+const PRESETS={
+  central:{desc:"Same-class, comparably equipped Corolla Cross-class like-for-like: petrol R425k, hybrid R506k and an equivalent C-segment EV R650k (current July-August 2026 pricing). EV lasts 12 years with normal resale; SA coal grid."},
+  budget:{desc:"Cheapest-in-class small cars (mid-2026 SA): ICE R300k, MG3-class hybrid R470k, BYD Dolphin Surf-class EV R340k. NOTE: these EVs are small city cars and cannot tow.",
+    set:p=>{p.icePrice=300000;p.hevPrice=470000;p.evPrice=340000;}},
+  heavy:{desc:"Utility / towing duty: ~60% higher energy draw, tyres wear ~30% faster, EV life capped near 9-10 years. Set a tow-capable EV price (R900k+), budget city EVs cannot tow.",
+    set:p=>{p.heavyDuty=true;p.evLife=10;p.evPrice=950000;p.fastShare=60;}},
+  gemini:{desc:"The pasted aggressive case: hard 10-year EV write-off (R0 residual + EV #2), 12% grid inflation, heavy-duty tyres 35k/50k km.",
+    set:p=>{p.petrolEsc=0.06;p.gridEsc=0.12;p.evLife=10;p.cliff=true;p.evResZero=true;p.heavyDuty=true;p.tyreIntICE=50000;p.tyreIntEV=35000;p.dutyTyre=1;p.evHeavyLife=10;p.evPrice=800000;p.fastShare=100;p.hotClimate=true;}},
+  evfriendly:{desc:"EV-favourable: 18-year EV life, no cliff, grid decarbonising to 0.55 kg/kWh, rising only 7%/yr, and an affordable R540k EV.",
+    set:p=>{p.evLife=18;p.gridEsc=0.07;p.gridCO2=0.55;p.petrolEsc=0.08;p.evPrice=540000;}},
+  premium:{desc:"Premium like-for-like, a ~R750k petrol SUV (3 Series / Tiguan class: ~9.5 L/100km, higher insurance, steeper depreciation) vs a ~R750k EV, with a premium hybrid SUV for context. Answers the 'compare same price' critique.",
+    set:p=>{p.icePrice=750000;p.iceL100=9.5;p.iceIns=28000;p.iceDk=0.86;p.hevPrice=650000;p.hevL100=5.8;p.hevIns=26000;p.evPrice=750000;}},
+  rapid:{desc:"Rapid-charging reliant: 90% of charging on DC fast chargers in a hot climate with weaker pack cooling, the pattern likely as public rapid charging spreads. Watch the EV usable life fall and the replacement cost, CO2 and mined-mineral burden climb.",set:p=>{p.fastShare=90;p.hotClimate=true;}}
+};
+
+const FASTK_NORMAL=0.15, FASTK_HOT=0.30;
+function lifeFromCharging(base, shareFrac, hot){ const k=hot?FASTK_HOT:FASTK_NORMAL; return Math.max(6, Math.round(base*(1 - shareFrac*k))); }
+function resaleFromCharging(shareFrac, hot){ return shareFrac*(hot?0.15:0.08); }
+function vbase(k){return k.startsWith("EV")?BASE.EV:BASE[k];}
+function sim(key,years,P){
+  const v=vbase(key), isEV=key.startsWith("EV"), solar=key==="EVsolar";
+  const price=isEV?P.evPrice:(key==="HEV"?P.hevPrice:P.icePrice);
+  const L100=(key==="ICE"&&P.iceL100)?P.iceL100:(key==="HEV"&&P.hevL100)?P.hevL100:v.L100;
+  const insY=(key==="ICE"&&P.iceIns)?P.iceIns:(key==="HEV"&&P.hevIns)?P.hevIns:v.ins;
+  const dkv=(key==="ICE"&&P.iceDk)?P.iceDk:v.dk;
+  const dutyE=P.heavyDuty?P.dutyEnergy:1;
+  const hc=isEV?(P.resaleHaircut||0):0;
+  let life=isEV?(P.effEvLife||P.evLife):v.life; if(isEV&&P.heavyDuty)life=Math.min(life,P.evHeavyLife);
+  let tyreInt=v.tyreInt; if(isEV&&P.tyreIntEV)tyreInt=P.tyreIntEV; if(!isEV&&P.tyreIntICE)tyreInt=P.tyreIntICE;
+  if(P.heavyDuty)tyreInt=Math.round(tyreInt*P.dutyTyre);
+  const mfg=isEV?(P.mfgEV??v.mfgCO2):v.mfgCO2;
+  let cap=0,energy=0,insvc=0,tyre=0,solarC=0,cMfg=0,cOp=0,cTyre=0,cSolar=0,batMat=0;
+  const batPer=isEV?BATMAT.EV:(key==="HEV"?BATMAT.HEV:BATMAT.ICE);
+  let age=0,cumKm=0,tyreCount=0,lastBatt=0,builds=1;
+  cap+=price; cMfg+=mfg; batMat+=batPer; if(solar){solarC+=P.solarCapex;cSolar+=P.solarMfgCO2;batMat+=SOLAR_BAT_MAT;}
+  for(let y=1;y<=years;y++){
+    const infl=Math.pow(1+P.genInfl,y-1), km=P.kmYr; cumKm+=km;
+    if(!isEV){const L=(L100*dutyE)/100*km; energy+=L*P.petrol0*Math.pow(1+P.petrolEsc,y-1); cOp+=L*PETROL_CO2;}
+    else if(key==="EVgrid"){const kWh=(v.kWh100*dutyE)/100*km; energy+=kWh*P.grid0*Math.pow(1+P.gridEsc,y-1); cOp+=kWh*P.gridCO2;}
+    else {const kWh=(v.kWh100*dutyE)/100*km; energy+=kWh*P.solarOpRate*infl; cOp+=kWh*P.solarCO2;}
+    insvc+=(insY+v.svc)*infl;
+    const need=Math.floor(cumKm/tyreInt)-tyreCount; if(need>0){tyre+=need*v.tyreSet*infl;cTyre+=need*v.tyreCO2;tyreCount+=need;}
+    if(solar&&(y-lastBatt)>=P.solarBattLife&&y<years){solarC+=P.solarBattCost*infl;cSolar+=P.solarBattCO2;batMat+=SOLAR_BAT_MAT;lastBatt=y;}
+    age++;
+    if(age>=life&&y<years){
+      const retired=(isEV&&(P.cliff||P.evResZero))?0:price*Math.pow(1+P.vehInfl,y)*Math.max(DK_FLOOR,Math.pow(dkv,age))*(1-hc);
+      cap-=retired; cap+=price*Math.pow(1+P.vehInfl,y); cMfg+=mfg; batMat+=batPer; age=0; builds++;
+    }
+  }
+  const endRes=(isEV&&P.evResZero&&age>=life)?0:price*Math.pow(1+P.vehInfl,years)*Math.max(DK_FLOOR,Math.pow(dkv,age))*(1-hc);
+  cap-=endRes;
+  return {tco:cap+energy+insvc+tyre+solarC, co2:cMfg+cOp+cTyre+cSolar, batMat, builds};
+}
+
+function simShare(key,years,shareFrac){ const q=Object.assign({},P); q.effEvLife=lifeFromCharging(P.evLife,shareFrac,P.hotClimate); q.resaleHaircut=resaleFromCharging(shareFrac,P.hotClimate); return sim(key,years,q); }
+const $=id=>document.getElementById(id);
+const R=n=>"R"+Math.round(n).toLocaleString("en-ZA");
+const KG=n=>Math.round(n).toLocaleString("en-ZA")+" kg";
+let P=defaults(), active="central";
+
+function syncInputs(){
+  $("icePrice").value=P.icePrice; $("hevPrice").value=P.hevPrice; $("evPrice").value=P.evPrice;
+  $("kmYr").value=P.kmYr; $("petrolEsc").value=P.petrolEsc*100; $("gridEsc").value=P.gridEsc*100;
+  $("gridCO2").value=P.gridCO2; $("genInfl").value=P.genInfl*100; $("evLife").value=P.evLife;
+  $("solarCapex").value=P.solarCapex; $("cliff").checked=P.cliff; $("heavyDuty").checked=P.heavyDuty;
+  $("fastShare").value=P.fastShare; $("hotClimate").checked=P.hotClimate;
+  $("petrol0").value=P.petrol0; $("grid0").value=P.grid0;
+}
+function readInputs(){
+  P.icePrice=+$("icePrice").value; P.hevPrice=+$("hevPrice").value; P.evPrice=+$("evPrice").value;
+  P.kmYr=+$("kmYr").value; P.petrolEsc=+$("petrolEsc").value/100; P.gridEsc=+$("gridEsc").value/100;
+  P.gridCO2=+$("gridCO2").value; P.genInfl=+$("genInfl").value/100; P.evLife=+$("evLife").value;
+  P.solarCapex=+$("solarCapex").value; P.cliff=$("cliff").checked; P.evResZero=$("cliff").checked; P.heavyDuty=$("heavyDuty").checked;
+  P.fastShare=+$("fastShare").value; P.hotClimate=$("hotClimate").checked; P.effEvLife=lifeFromCharging(P.evLife,P.fastShare/100,P.hotClimate); P.resaleHaircut=resaleFromCharging(P.fastShare/100,P.hotClimate);
+  P.petrol0=+$("petrol0").value; P.grid0=+$("grid0").value;
+}
+function labels(){
+  $("icePriceV").textContent=Math.round(P.icePrice/1000); $("hevPriceV").textContent=Math.round(P.hevPrice/1000);
+  $("evPriceV").textContent=Math.round(P.evPrice/1000);
+  $("kmYrV").textContent=P.kmYr.toLocaleString("en-ZA");
+  $("petrolEscV").textContent=(P.petrolEsc*100).toFixed(1); $("gridEscV").textContent=(P.gridEsc*100).toFixed(1);
+  $("gridCO2V").textContent=P.gridCO2.toFixed(2); $("genInflV").textContent=(P.genInfl*100).toFixed(1);
+  $("evLifeV").textContent=P.evLife; $("solarCapexV").textContent=Math.round(P.solarCapex/1000);
+  $("fastShareV").textContent=P.fastShare;
+  $("petrol0V").textContent=P.petrol0.toFixed(2); $("grid0V").textContent=P.grid0.toFixed(2);
+}
+
+function fillTable(bodyId, fn, fmt){
+  $(bodyId).innerHTML=HOR.map(y=>{
+    const vals=COLS.map(k=>fn(k,y)); const min=Math.min(...vals);
+    return `<tr><td>${y} yr · ${(P.kmYr*y/1000)}k km</td>`+
+      vals.map(v=>`<td class="${v===min?'win':''}">${fmt(v)}</td>`).join("")+`</tr>`;
+  }).join("");
+}
+
+function drawForecast(){
+  const W=960,H=300,L=64,Rg=16,T=14,B=28, pw=W-L-Rg, ph=H-T-B;
+  const yrs=[]; for(let y=1;y<=10;y++)yrs.push(y);
+  const series=COLS.map(k=>({k,col:COLC[k],pts:yrs.map(y=>sim(k,y,P).tco)}));
+  const max=Math.max(...series.flatMap(s=>s.pts))*1.08;
+  const sx=i=>L+(i/(yrs.length-1))*pw, sy=v=>T+ph-(v/max)*ph;
+  let g="";
+  for(let i=0;i<=4;i++){const v=max*i/4; g+=`<line x1="${L}" y1="${sy(v)}" x2="${L+pw}" y2="${sy(v)}" stroke="#eceff3"/>`+
+    `<text x="${L-8}" y="${sy(v)+4}" text-anchor="end" font-size="10" fill="#8a929c">R${Math.round(v/1000)}k</text>`;}
+  yrs.forEach((y,i)=>{ if(i%2===0||i===yrs.length-1) g+=`<text x="${sx(i)}" y="${H-10}" text-anchor="middle" font-size="10" fill="#8a929c">${2026+y-1}</text>`;});
+  const lines=series.map(s=>`<path d="${s.pts.map((v,i)=>(i?'L':'M')+sx(i).toFixed(1)+','+sy(v).toFixed(1)).join(' ')}" fill="none" stroke="${s.col}" stroke-width="2.5"/>`+
+    `<circle cx="${sx(yrs.length-1)}" cy="${sy(s.pts[s.pts.length-1])}" r="3.5" fill="${s.col}"/>`).join("");
+  $("forecast").innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%">${g}${lines}</svg>`;
+}
+
+function verdict(){
+  const t20=COLS.map(k=>({k,v:sim(k,20,P).tco})), c20=COLS.map(k=>({k,v:sim(k,20,P).co2}));
+  const name={ICE:"Budget ICE",HEV:"Hybrid",EVgrid:"Grid EV",EVsolar:"Solar EV"};
+  const cheap=t20.reduce((a,b)=>b.v<a.v?b:a), clean=c20.reduce((a,b)=>b.v<a.v?b:a);
+  const evg=sim("EVgrid",20,P).co2, ice=sim("ICE",20,P).co2, rel=((evg/ice-1)*100);
+  $("verdict").innerHTML=`Over 20 years at these settings, the cheapest option is <b style="color:${COLC[cheap.k]}">${name[cheap.k]}</b> (${R(cheap.v)}), `+
+    `while the lowest-carbon is <b style="color:${COLC[clean.k]}">${name[clean.k]}</b> (${KG(clean.v)}). `+
+    `The grid-tied EV's lifecycle CO₂ is ${rel>=0?'<b>'+rel.toFixed(0)+'% higher than</b>':'<b>'+Math.abs(rel).toFixed(0)+'% lower than</b>'} the budget ICE.`;
+  let f="";
+  if(P.cliff) f+="Hard 10-yr cliff is ON, both EVs buy a second vehicle at year 10, re-injecting full manufacturing cost and CO₂. ";
+  if(P.gridCO2>=0.8 && !P.cliff) f+="On a coal-heavy grid the grid-EV's carbon advantage disappears; only the solar EV is genuinely low-carbon. ";
+  if(P.gridCO2<=0.6) f+="With a decarbonising grid the grid-EV becomes competitive on carbon. ";
+  f+="These are working assumptions, not cited facts yet, use the sliders to test your own.";
+  $("flag").textContent=f;
+}
+
+function renderCharging(){
+  const slow=simShare("EVgrid",20,0), rapid=simShare("EVgrid",20,1);
+  const sl=lifeFromCharging(P.evLife,0,P.hotClimate), rl=lifeFromCharging(P.evLife,1,P.hotClimate);
+  const dTco=rapid.tco-slow.tco, dCo2=rapid.co2-slow.co2, dMat=rapid.batMat-slow.batMat;
+  const dBuild=(rapid.builds-1)-(slow.builds-1);
+  const pen=(v,f)=> v>500 ? "+"+f(v) : "none";
+  const rows=[
+    ["EV usable battery life", sl+" yrs", rl+" yrs", (rl-sl)+" yrs"],
+    ["Battery/vehicle rebuilds in 20 yrs", (slow.builds-1), (rapid.builds-1), dBuild>0?("+"+dBuild):"0"],
+    ["20-yr total cost of ownership", R(slow.tco), R(rapid.tco), pen(dTco,R)],
+    ["20-yr cradle-to-grave CO₂", KG(slow.co2), KG(rapid.co2), pen(dCo2,KG)],
+    ["20-yr critical minerals mined", KG(slow.batMat), KG(rapid.batMat), pen(dMat,KG)]
+  ];
+  $("chargeBody").innerHTML=rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td style="background:#fdecec;color:#b23;font-weight:700">${r[3]}</td></tr>`).join("");
+  const yrsLost=sl-rl;
+  if(dBuild>0){
+    $("chargeNote").innerHTML=`Relying on rapid DC charging shortens this EV's usable battery life by about <b>${yrsLost} year${yrsLost>1?'s':''}</b> and forces <b>${dBuild} extra battery/vehicle replacement</b> inside 20 years. That adds roughly <b>${R(dTco)}</b> in cost, <b>${KG(dCo2)}</b> of CO₂ and <b>${KG(dMat)}</b> of freshly mined lithium-ion minerals, purely from charging fast rather than slow.`;
+  } else if(dTco>500){
+    $("chargeNote").innerHTML=`Rapid DC charging shortens usable life by about <b>${yrsLost} year${yrsLost>1?'s':''}</b> and lowers resale (a heavily fast-charged pack is worth less), adding about <b>${R(dTco)}</b> over 20 years. It does not yet force an extra replacement at these settings; raise mileage, extend the horizon, or switch on hot climate / weak cooling (common in South Africa) and it will, adding a whole extra pack worth of cost, CO₂ and mined minerals.`;
+  } else {
+    $("chargeNote").innerHTML=`At these settings the modelled fast-charge penalty is small: a well-cooled pack charged fast behaves much like one charged slowly. The burden grows sharply with hot climate / weak cooling, higher mileage or a longer ownership horizon, when faster ageing forces an earlier, extra battery replacement.`;
+  }
+}
+function render(){ readInputs(); labels();
+  fillTable("tcoBody",(k,y)=>sim(k,y,P).tco,R);
+  fillTable("co2Body",(k,y)=>sim(k,y,P).co2,KG);
+  fillTable("batBody",(k,y)=>sim(k,y,P).batMat,KG);
+  drawForecast(); verdict(); renderCharging();
+}
+
+document.querySelectorAll("#presets button").forEach(b=>b.addEventListener("click",()=>{
+  active=b.dataset.p; document.querySelectorAll("#presets button").forEach(x=>x.classList.toggle("on",x===b));
+  P=defaults(); if(PRESETS[active].set)PRESETS[active].set(P); $("pdesc").textContent=PRESETS[active].desc;
+  syncInputs(); render();
+}));
+["icePrice","hevPrice","evPrice","petrol0","grid0","kmYr","petrolEsc","gridEsc","gridCO2","genInfl","evLife","solarCapex","fastShare"].forEach(id=>$(id).addEventListener("input",()=>{active="custom";document.querySelectorAll("#presets button").forEach(x=>x.classList.remove("on"));render();}));
+["cliff","heavyDuty","hotClimate"].forEach(id=>$(id).addEventListener("change",()=>{active="custom";document.querySelectorAll("#presets button").forEach(x=>x.classList.remove("on"));render();}));
+
+$("pdesc").textContent=PRESETS.central.desc;
+syncInputs(); render();
+</script>
+</body>
+</html>

@@ -1,0 +1,820 @@
+<title>CarCost Compare</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --bg:#f5f6f3;
+    --surface:#ffffff;
+    --surface-2:#ecefea;
+    --border:#dadcd6;
+    --ink:#1c2126;
+    --ink-2:#4b535a;
+    --ink-muted:#7c8480;
+    --brand:#2f6e63;
+    --brand-ink:#ffffff;
+    --keep:#b5633b;
+    --petrol:#1f6fb2;
+    --solar:#a67c1e;
+    --focus:#2f6e63;
+    --shadow: 0 1px 2px rgba(28,33,38,.04), 0 6px 20px -8px rgba(28,33,38,.12);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#17191a;
+      --surface:#202325;
+      --surface-2:#262a2c;
+      --border:#383c3e;
+      --ink:#e7e9e6;
+      --ink-2:#aeb4b0;
+      --ink-muted:#8b918d;
+      --brand:#5cb3a2;
+      --brand-ink:#0d1a17;
+      --keep:#c97a50;
+      --petrol:#4a85c2;
+      --solar:#b27f26;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -8px rgba(0,0,0,.45);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#17191a;
+    --surface:#202325;
+    --surface-2:#262a2c;
+    --border:#383c3e;
+    --ink:#e7e9e6;
+    --ink-2:#aeb4b0;
+    --ink-muted:#8b918d;
+    --brand:#5cb3a2;
+    --brand-ink:#0d1a17;
+    --keep:#c97a50;
+    --petrol:#4a85c2;
+    --solar:#b27f26;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px -8px rgba(0,0,0,.45);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Public Sans', ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .page{max-width:1240px;margin:0 auto;padding:2.25rem 1.5rem 5rem;}
+
+  h1,h2,h3{font-family:'Fraunces', Georgia, serif; text-wrap:balance; margin:0;}
+  .mono{font-family:'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace; font-variant-numeric:tabular-nums;}
+
+  /* ---------- Masthead ---------- */
+  .masthead{
+    display:flex; flex-direction:column; gap:.75rem;
+    padding-bottom:1.75rem; margin-bottom:1.75rem;
+    border-bottom:1px solid var(--border);
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:.72rem; letter-spacing:.11em; text-transform:uppercase;
+    color:var(--brand); font-weight:600;
+  }
+  .masthead h1{font-size:2.15rem; font-weight:600; line-height:1.08;}
+  .masthead p{max-width:62ch; color:var(--ink-2); font-size:1rem; line-height:1.55; margin:0;}
+  .masthead .context{
+    display:flex; flex-wrap:wrap; gap:.5rem 1.1rem; margin-top:.35rem;
+    font-family:'IBM Plex Mono', monospace; font-size:.78rem; color:var(--ink-muted);
+  }
+  .masthead .context b{color:var(--ink-2); font-weight:600;}
+
+  /* ---------- Layout ---------- */
+  .layout{display:grid; grid-template-columns:minmax(300px,380px) 1fr; gap:1.75rem; align-items:start;}
+  @media (max-width:980px){ .layout{grid-template-columns:1fr;} }
+
+  .controls{display:flex; flex-direction:column; gap:1.1rem;}
+  .results{position:sticky; top:1.25rem; display:flex; flex-direction:column; gap:1.1rem;}
+  @media (max-width:980px){ .results{position:static;} }
+
+  .card{
+    background:var(--surface); border:1px solid var(--border); border-radius:10px;
+    padding:1.15rem 1.25rem 1.3rem; box-shadow:var(--shadow);
+  }
+  .card-head{display:flex; align-items:center; gap:.55rem; margin-bottom:.2rem;}
+  .swatch{width:.6rem; height:.6rem; border-radius:2px; flex:none;}
+  .card h3{font-size:1.02rem; font-weight:600; color:var(--ink);}
+  .card .desc{font-size:.82rem; color:var(--ink-muted); margin:.15rem 0 .9rem; line-height:1.45;}
+
+  /* ---------- Fields / sliders ---------- */
+  .field{margin-bottom:.85rem;}
+  .field:last-child{margin-bottom:0;}
+  .field-head{display:flex; justify-content:space-between; align-items:baseline; gap:.5rem; margin-bottom:.3rem;}
+  .field-head label{font-size:.83rem; color:var(--ink-2); font-weight:500;}
+  .field-value{font-family:'IBM Plex Mono', monospace; font-size:.83rem; font-weight:600; color:var(--ink); white-space:nowrap;}
+
+  input[type="range"]{
+    -webkit-appearance:none; appearance:none; width:100%; height:4px;
+    background:var(--border); border-radius:3px; outline:none; margin:0; display:block;
+  }
+  input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:16px; height:16px; border-radius:50%;
+    background:var(--brand); border:2px solid var(--surface); box-shadow:0 0 0 1px var(--brand);
+    cursor:pointer; margin-top:0;
+  }
+  input[type="range"]::-moz-range-thumb{
+    width:14px; height:14px; border-radius:50%; background:var(--brand);
+    border:2px solid var(--surface); box-shadow:0 0 0 1px var(--brand); cursor:pointer;
+  }
+  input[type="range"]:focus-visible::-webkit-slider-thumb{ box-shadow:0 0 0 3px color-mix(in srgb, var(--brand) 35%, transparent); }
+
+  .total-strip{
+    display:flex; align-items:baseline; justify-content:space-between; gap:.5rem;
+    background:var(--surface-2); border-radius:8px; padding:.6rem .8rem; margin-top:.9rem;
+    font-size:.8rem; color:var(--ink-2);
+  }
+  .total-strip .mono{font-size:.95rem; font-weight:600; color:var(--ink);}
+
+  details.adv{margin-top:.9rem; border-top:1px dashed var(--border); padding-top:.75rem;}
+  details.adv summary{
+    cursor:pointer; font-size:.78rem; color:var(--brand); font-weight:600;
+    list-style:none; display:flex; align-items:center; gap:.35rem;
+  }
+  details.adv summary::-webkit-details-marker{display:none;}
+  details.adv summary::before{content:"+"; font-family:'IBM Plex Mono',monospace; width:1em;}
+  details.adv[open] summary::before{content:"–";}
+  details.adv .field{margin-top:.85rem;}
+
+  .toggle-row{display:flex; align-items:center; justify-content:space-between; gap:.75rem; margin-bottom:.85rem;}
+  .toggle-row .label-block label{font-size:.83rem; color:var(--ink-2); font-weight:500; display:block;}
+  .toggle-row .label-block .hint{font-size:.74rem; color:var(--ink-muted);}
+  .switch{position:relative; width:38px; height:22px; flex:none;}
+  .switch input{position:absolute; opacity:0; inset:0; margin:0; cursor:pointer; width:100%; height:100%;}
+  .switch .track{position:absolute; inset:0; background:var(--border); border-radius:99px; transition:background .15s; pointer-events:none;}
+  .switch .knob{position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%; background:var(--surface); box-shadow:var(--shadow); transition:transform .15s; pointer-events:none;}
+  .switch input:checked + .track{background:var(--brand);}
+  .switch input:checked ~ .knob{transform:translateX(16px);}
+  .switch input:focus-visible ~ .track{box-shadow:0 0 0 3px color-mix(in srgb, var(--brand) 35%, transparent);}
+
+  .battery-fields{display:grid; gap:.85rem; margin-top:.2rem;}
+  .battery-fields[data-off="true"]{opacity:.4; pointer-events:none;}
+
+  button.reset{
+    font-family:'IBM Plex Mono', monospace; font-size:.76rem; font-weight:600;
+    color:var(--ink-2); background:var(--surface-2); border:1px solid var(--border);
+    border-radius:7px; padding:.5rem .8rem; cursor:pointer;
+  }
+  button.reset:hover{color:var(--ink); border-color:var(--ink-muted);}
+
+  /* ---------- Results ---------- */
+  .horizon-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:.85rem;}
+  @media (max-width:760px){ .horizon-grid{grid-template-columns:repeat(2,1fr);} }
+  .horizon-card{
+    background:var(--surface); border:1px solid var(--border); border-radius:10px;
+    padding:.95rem 1rem 1.05rem; box-shadow:var(--shadow);
+  }
+  .horizon-card .yr{font-family:'Fraunces',serif; font-size:1.2rem; font-weight:600; margin-bottom:.65rem;}
+  .horizon-row{display:flex; align-items:center; gap:.45rem; padding:.28rem 0;}
+  .horizon-row .swatch{margin-top:0;}
+  .horizon-row .name{font-size:.74rem; color:var(--ink-muted); flex:1; min-width:0;}
+  .horizon-row .val{font-family:'IBM Plex Mono',monospace; font-size:.86rem; color:var(--ink-2); white-space:nowrap;}
+  .horizon-row.lowest .name{color:var(--ink); font-weight:600;}
+  .horizon-row.lowest .val{color:var(--ink); font-weight:700;}
+  .horizon-row.lowest .tag{font-size:.63rem; color:var(--ink-muted); margin-left:.3rem; font-weight:500; font-family:'Public Sans',sans-serif;}
+
+  .callouts{display:flex; flex-direction:column; gap:.4rem; margin-top:.95rem; padding-top:.9rem; border-top:1px solid var(--border);}
+  .callouts p{margin:0; font-size:.85rem; color:var(--ink-2); line-height:1.5;}
+  .callouts p b{color:var(--ink); font-weight:600;}
+
+  .chart-card .card-head{justify-content:space-between;}
+  .legend{display:flex; gap:1.1rem; flex-wrap:wrap;}
+  .legend-item{display:flex; align-items:center; gap:.4rem; font-size:.78rem; color:var(--ink-2);}
+  .chart-wrap{position:relative; margin-top:.6rem;}
+  svg.chart{width:100%; height:auto; display:block; overflow:visible;}
+  .gridline{stroke:var(--border); stroke-width:1;}
+  .axis-label{fill:var(--ink-muted); font-family:'IBM Plex Mono',monospace; font-size:9.5px;}
+  .series-line{fill:none; stroke-width:2.25px;}
+  .series-dot{stroke:var(--surface); stroke-width:1.5px;}
+  .end-label{font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:600;}
+  .crosshair{stroke:var(--ink-muted); stroke-width:1; stroke-dasharray:3 3; opacity:0;}
+  .hoverdot{opacity:0;}
+
+  .tooltip{
+    position:absolute; pointer-events:none; background:var(--ink); color:var(--bg);
+    border-radius:8px; padding:.55rem .7rem; font-size:.76rem; line-height:1.5;
+    box-shadow:var(--shadow); opacity:0; transform:translate(-50%,-108%); transition:opacity .08s;
+    white-space:nowrap; z-index:5;
+  }
+  .tooltip .row{display:flex; align-items:center; gap:.4rem;}
+  .tooltip .row .mono{color:var(--bg); font-weight:600;}
+  .tooltip .yr{font-family:'IBM Plex Mono',monospace; font-weight:600; margin-bottom:.2rem; opacity:.75;}
+
+  footer{margin-top:2.5rem; padding-top:1.25rem; border-top:1px solid var(--border);}
+  footer p{font-size:.78rem; color:var(--ink-muted); line-height:1.6; max-width:78ch; margin:0 0 .4rem;}
+
+  :focus-visible{outline:2px solid var(--focus); outline-offset:2px;}
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;}
+  }
+</style>
+
+<div class="page">
+
+  <header class="masthead">
+    <div class="eyebrow">Urban second vehicle · TCO calculator</div>
+    <h1>CarCost Compare</h1>
+    <p>Thinking about a second, urban-only car — for a commute or local errands, with another vehicle already covering longer trips? This compares three paths: keep what you have, replace it with a smaller petrol runabout, or replace it with a solar-assisted EV. Every number below is a starting estimate — drag the sliders to match your own driving, prices and local tariffs.</p>
+    <div class="context">
+      <span><b>Loaded defaults:</b> Nelson Mandela Bay, Sept 2026</span>
+      <span>95 ULP <b>R26.05/L</b></span>
+      <span>Muni electricity <b>R4.50/kWh</b></span>
+    </div>
+  </header>
+
+  <div class="layout">
+
+    <!-- ===================== CONTROLS ===================== -->
+    <div class="controls">
+
+      <div class="card">
+        <div class="card-head"><h3>Your driving</h3></div>
+        <p class="desc">Distance covered by the car you're replacing — commute plus local weekend errands.</p>
+
+        <div class="field">
+          <div class="field-head"><label for="commute">Commute, one way</label><span class="field-value mono" id="commute-v"></span></div>
+          <input type="range" id="commute" min="0" max="60" step="1" value="12">
+        </div>
+        <div class="field">
+          <div class="field-head"><label for="workdays">Working days per year</label><span class="field-value mono" id="workdays-v"></span></div>
+          <input type="range" id="workdays" min="100" max="280" step="1" value="264">
+        </div>
+        <div class="field">
+          <div class="field-head"><label for="weekendkm">Weekend/errand driving, per day</label><span class="field-value mono" id="weekendkm-v"></span></div>
+          <input type="range" id="weekendkm" min="0" max="100" step="5" value="40">
+        </div>
+        <div class="field">
+          <div class="field-head"><label for="weekenddays">Days per year of that driving</label><span class="field-value mono" id="weekenddays-v"></span></div>
+          <input type="range" id="weekenddays" min="0" max="200" step="1" value="104">
+        </div>
+
+        <div class="total-strip">
+          <span>Total distance this car covers</span>
+          <span class="mono" id="totalkm-v"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><span class="swatch" style="background:var(--keep)"></span><h3>Option A — keep current car</h3></div>
+        <p class="desc">What it costs to just carry on driving the car you already own.</p>
+
+        <div class="field">
+          <div class="field-head"><label for="keepResale">Private-sale value today</label><span class="field-value mono" id="keepResale-v"></span></div>
+          <input type="range" id="keepResale" min="20000" max="150000" step="1000" value="75000">
+        </div>
+        <div class="field">
+          <div class="field-head"><label for="keepConsumption">Fuel use (real-world)</label><span class="field-value mono" id="keepConsumption-v"></span></div>
+          <input type="range" id="keepConsumption" min="4" max="12" step="0.1" value="8.0">
+        </div>
+        <div class="field">
+          <div class="field-head"><label for="keepMaint">Servicing &amp; repairs, per year</label><span class="field-value mono" id="keepMaint-v"></span></div>
+          <input type="range" id="keepMaint" min="1000" max="15000" step="250" value="5500">
+        </div>
+
+        <details class="adv">
+          <summary>Resale assumptions</summary>
+          <div class="field">
+            <div class="field-head"><label for="keepDepr">Depreciation, per year</label><span class="field-value mono" id="keepDepr-v"></span></div>
+            <input type="range" id="keepDepr" min="4" max="25" step="1" value="10">
+          </div>
+          <div class="field">
+            <div class="field-head"><label for="keepFloor">Scrap / parts floor value</label><span class="field-value mono" id="keepFloor-v"></span></div>
+            <input type="range" id="keepFloor" min="0" max="40000" step="1000" value="15000">
+          </div>
+        </details>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><span class="swatch" style="background:var(--petrol)"></span><h3>Option B — smaller petrol car</h3></div>
+        <p class="desc">A newer, lower-mileage 1100–1300cc hatch — sized to actually compete with an urban EV.</p>
+
+        <div class="field">
+          <div class="field-head"><label for="icePrice">Purchase price</label><span class="field-value mono" id="icePrice-v"></span></div>
+          <input type="range" id="icePrice" min="60000" max="250000" step="5000" value="130000">
+        </div>
+        <div class="field">
+          <div class="field-head"><label for="iceConsumption">Fuel use (combined)</label><span class="field-value mono" id="iceConsumption-v"></span></div>
+          <input type="range" id="iceConsumption" min="3.5" max="9" step="0.1" value="5.6">
+        </div>
+        <div class="field">
+          <div class="field-head"><label for="iceMaint">Servicing &amp; repairs, per year</label><span class="field-value mono" id="iceMaint-v"></span></div>
+          <input type="range" id="iceMaint" min="1000" max="12000" step="250" value="4000">
+        </div>
+
+        <details class="adv">
+          <summary>Resale assumptions</summary>
+          <div class="field">
+            <div class="field-head"><label for="iceDepr">Depreciation, per year</label><span class="field-value mono" id="iceDepr-v"></span></div>
+            <input type="range" id="iceDepr" min="4" max="25" step="1" value="12">
+          </div>
+          <div class="field">
+            <div class="field-head"><label for="iceFloor">Scrap / parts floor value</label><span class="field-value mono" id="iceFloor-v"></span></div>
+            <input type="range" id="iceFloor" min="0" max="40000" step="1000" value="20000">
+          </div>
+        </details>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><span class="swatch" style="background:var(--solar)"></span><h3>Option C — solar EV</h3></div>
+        <p class="desc">An imported solar-assisted EV in the Solarky sunV mould — no confirmed SA price yet, so treat the purchase price as your own working guess.</p>
+
+        <div class="field">
+          <div class="field-head"><label for="evPrice">Landed purchase price</label><span class="field-value mono" id="evPrice-v"></span></div>
+          <input type="range" id="evPrice" min="150000" max="400000" step="5000" value="250000">
+        </div>
+        <div class="field">
+          <div class="field-head"><label for="evEff">Efficiency (real-world)</label><span class="field-value mono" id="evEff-v"></span></div>
+          <input type="range" id="evEff" min="50" max="150" step="5" value="85">
+        </div>
+        <div class="field">
+          <div class="field-head"><label for="solarShare">Share of driving covered by free solar</label><span class="field-value mono" id="solarShare-v"></span></div>
+          <input type="range" id="solarShare" min="0" max="100" step="5" value="70">
+        </div>
+        <div class="field">
+          <div class="field-head"><label for="evMaint">Servicing, per year</label><span class="field-value mono" id="evMaint-v"></span></div>
+          <input type="range" id="evMaint" min="500" max="8000" step="250" value="1500">
+        </div>
+
+        <details class="adv">
+          <summary>Resale &amp; battery assumptions</summary>
+
+          <div class="field">
+            <div class="field-head"><label for="evDepr">Depreciation, per year</label><span class="field-value mono" id="evDepr-v"></span></div>
+            <input type="range" id="evDepr" min="4" max="25" step="1" value="15">
+          </div>
+          <div class="field">
+            <div class="field-head"><label for="evFloor">Scrap / parts floor value</label><span class="field-value mono" id="evFloor-v"></span></div>
+            <input type="range" id="evFloor" min="0" max="40000" step="1000" value="15000">
+          </div>
+
+          <div class="toggle-row" style="margin-top:1rem;">
+            <div class="label-block">
+              <label for="batteryOn">Expect a battery replacement</label>
+              <div class="hint">Unproven brand — model the risk rather than ignore it</div>
+            </div>
+            <div class="switch">
+              <input type="checkbox" id="batteryOn" checked>
+              <div class="track"></div>
+              <div class="knob"></div>
+            </div>
+          </div>
+
+          <div class="battery-fields" id="batteryFields">
+            <div class="field">
+              <div class="field-head"><label for="batteryYear">Year it's replaced</label><span class="field-value mono" id="batteryYear-v"></span></div>
+              <input type="range" id="batteryYear" min="1" max="20" step="1" value="8">
+            </div>
+            <div class="field">
+              <div class="field-head"><label for="batteryCost">Replacement cost</label><span class="field-value mono" id="batteryCost-v"></span></div>
+              <input type="range" id="batteryCost" min="20000" max="120000" step="5000" value="70000">
+            </div>
+            <div class="field">
+              <div class="field-head"><label for="freshPremium">Resale premium from fresh battery</label><span class="field-value mono" id="freshPremium-v"></span></div>
+              <input type="range" id="freshPremium" min="0" max="50000" step="2500" value="25000">
+            </div>
+            <div class="field">
+              <div class="field-head"><label for="ageDiscount">Resale penalty if never replaced (year 8+)</label><span class="field-value mono" id="ageDiscount-v"></span></div>
+              <input type="range" id="ageDiscount" min="0" max="30000" step="2500" value="10000">
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h3>Economy-wide assumptions</h3></div>
+        <p class="desc">Shared across all three options.</p>
+
+        <div class="field">
+          <div class="field-head"><label for="fuelPrice">Petrol price today</label><span class="field-value mono" id="fuelPrice-v"></span></div>
+          <input type="range" id="fuelPrice" min="15" max="35" step="0.05" value="26.05">
+        </div>
+        <div class="field">
+          <div class="field-head"><label for="fuelEsc">Petrol price rises, per year</label><span class="field-value mono" id="fuelEsc-v"></span></div>
+          <input type="range" id="fuelEsc" min="0" max="15" step="0.1" value="7">
+        </div>
+        <div class="field">
+          <div class="field-head"><label for="elecPrice">Electricity tariff today</label><span class="field-value mono" id="elecPrice-v"></span></div>
+          <input type="range" id="elecPrice" min="1.5" max="8" step="0.05" value="4.50">
+        </div>
+        <div class="field">
+          <div class="field-head"><label for="elecEsc">Electricity tariff rises, per year</label><span class="field-value mono" id="elecEsc-v"></span></div>
+          <input type="range" id="elecEsc" min="0" max="25" step="0.1" value="11.9">
+        </div>
+        <div class="field">
+          <div class="field-head"><label for="maintEsc">Servicing costs rise, per year</label><span class="field-value mono" id="maintEsc-v"></span></div>
+          <input type="range" id="maintEsc" min="0" max="12" step="0.5" value="4">
+        </div>
+
+        <button class="reset" id="resetBtn" type="button">Reset all to defaults</button>
+      </div>
+
+    </div>
+
+    <!-- ===================== RESULTS ===================== -->
+    <div class="results">
+
+      <div class="card">
+        <div class="card-head"><h3>Net cost at each horizon</h3></div>
+        <p class="desc">Purchase price, less what you'd get selling your current car today, plus every year of running costs, less what the new car is worth if you sold it at that point.</p>
+        <div class="horizon-grid" id="horizonGrid"></div>
+        <div class="callouts" id="callouts"></div>
+      </div>
+
+      <div class="card chart-card">
+        <div class="card-head">
+          <h3>Cumulative net cost, year by year</h3>
+          <div class="legend" id="legend"></div>
+        </div>
+        <div class="chart-wrap" id="chartWrap">
+          <svg class="chart" id="chart" viewBox="0 0 720 340" preserveAspectRatio="xMidYMid meet"></svg>
+          <div class="tooltip" id="tooltip"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>
+    <p><b>How to read this:</b> figures are today's Rand terms, escalated by the rates you set — this is a planning estimate, not a quote or financial advice, and none of the underlying prices (especially the EV's landed cost) are confirmed by any manufacturer or distributor. Battery, depreciation and solar-coverage assumptions are informed guesses you should adjust to match whatever real quotes you're able to get.</p>
+    <p><b>Why the lines dip below zero early on:</b> a car depreciates fastest in its first couple of years. If you sold right then, that drop in resale value can outweigh what you've spent driving it — a negative number just means that option would leave you financially ahead of having spent nothing at all. It's temporary; every option turns positive once a few years of running costs build up.</p>
+    <p style="margin-top:.9rem;">A resource from the <a href="https://www.nmbbusinesschamber.co.za/" style="color:var(--brand); font-weight:600; text-decoration:none;" target="_blank" rel="noopener">Nelson Mandela Bay Business Chamber</a>.</p>
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var ids = ["commute","workdays","weekendkm","weekenddays",
+    "keepResale","keepConsumption","keepMaint","keepDepr","keepFloor",
+    "icePrice","iceConsumption","iceMaint","iceDepr","iceFloor",
+    "evPrice","evEff","solarShare","evMaint","evDepr","evFloor",
+    "batteryYear","batteryCost","freshPremium","ageDiscount",
+    "fuelPrice","fuelEsc","elecPrice","elecEsc","maintEsc"];
+
+  var defaults = {
+    commute:12, workdays:264, weekendkm:40, weekenddays:104,
+    keepResale:75000, keepConsumption:8.0, keepMaint:5500, keepDepr:10, keepFloor:15000,
+    icePrice:130000, iceConsumption:5.6, iceMaint:4000, iceDepr:12, iceFloor:20000,
+    evPrice:250000, evEff:85, solarShare:70, evMaint:1500, evDepr:15, evFloor:15000,
+    batteryOn:true, batteryYear:8, batteryCost:70000, freshPremium:25000, ageDiscount:10000,
+    fuelPrice:26.05, fuelEsc:7, elecPrice:4.50, elecEsc:11.9, maintEsc:4
+  };
+
+  var COLORS = { keep: getVar('--keep'), petrol: getVar('--petrol'), solar: getVar('--solar') };
+  function getVar(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '#888'; }
+
+  var HORIZONS = [5,10,15,20];
+  var MAXYEAR = 20;
+  var STORE_KEY = "carcost-compare-v1";
+
+  function rand(n){
+    n = Math.round(n);
+    var neg = n < 0;
+    n = Math.abs(n);
+    var s = n.toLocaleString('en-ZA').replace(/,/g,' ');
+    return (neg?'-R ':'R ') + s;
+  }
+  function km(n){ return Math.round(n).toLocaleString('en-ZA').replace(/,/g,' ') + ' km'; }
+  function pct(n){ return n.toFixed(1).replace(/\.0$/,'') + '%'; }
+
+  var formatters = {
+    commute: function(v){ return v + ' km'; },
+    workdays: function(v){ return v + ' days'; },
+    weekendkm: function(v){ return v + ' km'; },
+    weekenddays: function(v){ return v + ' days'; },
+    keepResale: rand, keepConsumption: function(v){ return v.toFixed(1)+' L/100km'; }, keepMaint: rand,
+    keepDepr: pct, keepFloor: rand,
+    icePrice: rand, iceConsumption: function(v){ return v.toFixed(1)+' L/100km'; }, iceMaint: rand,
+    iceDepr: pct, iceFloor: rand,
+    evPrice: rand, evEff: function(v){ return v+' Wh/km'; }, solarShare: function(v){ return v+'%'; }, evMaint: rand,
+    evDepr: pct, evFloor: rand,
+    batteryYear: function(v){ return 'Year '+v; }, batteryCost: rand, freshPremium: rand, ageDiscount: rand,
+    fuelPrice: function(v){ return 'R'+v.toFixed(2)+'/L'; }, fuelEsc: pct,
+    elecPrice: function(v){ return 'R'+v.toFixed(2)+'/kWh'; }, elecEsc: pct,
+    maintEsc: pct
+  };
+
+  function readState(){
+    var s = {};
+    ids.forEach(function(id){
+      var el = document.getElementById(id);
+      s[id] = parseFloat(el.value);
+    });
+    s.batteryOn = document.getElementById('batteryOn').checked;
+    return s;
+  }
+
+  function applyState(s){
+    ids.forEach(function(id){
+      if (s[id] !== undefined) document.getElementById(id).value = s[id];
+    });
+    document.getElementById('batteryOn').checked = !!s.batteryOn;
+  }
+
+  function updateLabels(){
+    ids.forEach(function(id){
+      var el = document.getElementById(id);
+      var out = document.getElementById(id+'-v');
+      if (out) out.textContent = formatters[id](parseFloat(el.value));
+    });
+  }
+
+  function depreciate(value, ratePct, years, floor){
+    var v = value * Math.pow(1 - ratePct/100, years);
+    return Math.max(floor, v);
+  }
+
+  function computeSeries(s){
+    var kmYear = (s.commute*2*s.workdays) + (s.weekendkm*s.weekenddays);
+    var batteryOn = s.batteryOn;
+
+    var years = [];
+    var keepCum=[], iceCum=[], evCum=[];
+
+    var keepRunSum=0, iceRunSum=0, evRunSum=0;
+
+    for (var t=0; t<=MAXYEAR; t++){
+      if (t===0){
+        // Day zero: pure cash outlay, no notional "sell it right back" credit.
+        years.push(t);
+        keepCum.push(0);
+        iceCum.push(s.icePrice - s.keepResale);
+        evCum.push(s.evPrice - s.keepResale);
+        continue;
+      }
+
+      var fuelP = s.fuelPrice * Math.pow(1+s.fuelEsc/100, t-1);
+      var elecP = s.elecPrice * Math.pow(1+s.elecEsc/100, t-1);
+      var maintMul = Math.pow(1+s.maintEsc/100, t-1);
+
+      keepRunSum += kmYear*(s.keepConsumption/100)*fuelP + s.keepMaint*maintMul;
+      iceRunSum  += kmYear*(s.iceConsumption/100)*fuelP + s.iceMaint*maintMul;
+      var evRun = kmYear*(s.evEff/1000)*(1-s.solarShare/100)*elecP + s.evMaint*maintMul;
+      if (batteryOn && t === Math.round(s.batteryYear)) evRun += s.batteryCost;
+      evRunSum += evRun;
+
+      var keepResaleAt = depreciate(s.keepResale, s.keepDepr, t, s.keepFloor);
+      var iceResaleAt  = depreciate(s.icePrice,  s.iceDepr,  t, s.iceFloor);
+      var evResaleBase = depreciate(s.evPrice,   s.evDepr,   t, s.evFloor);
+
+      var evResaleAdj = evResaleBase;
+      if (batteryOn && t >= Math.round(s.batteryYear)){
+        evResaleAdj = evResaleBase + s.freshPremium;
+      } else if (t >= 8) {
+        evResaleAdj = Math.max(s.evFloor, evResaleBase - s.ageDiscount);
+      }
+
+      years.push(t);
+      keepCum.push(keepRunSum - keepResaleAt);
+      iceCum.push((s.icePrice - s.keepResale) + iceRunSum - iceResaleAt);
+      evCum.push((s.evPrice - s.keepResale) + evRunSum - evResaleAdj);
+    }
+
+    return { years:years, keepCum:keepCum, iceCum:iceCum, evCum:evCum, kmYear:kmYear };
+  }
+
+  function renderHorizons(series){
+    document.getElementById('totalkm-v').textContent = km(series.kmYear) + '/yr';
+    var grid = document.getElementById('horizonGrid');
+    grid.innerHTML = '';
+    HORIZONS.forEach(function(h){
+      var k = series.keepCum[h], i = series.iceCum[h], e = series.evCum[h];
+      var min = Math.min(k,i,e);
+      var card = document.createElement('div');
+      card.className = 'horizon-card';
+      card.innerHTML =
+        '<div class="yr">'+h+' yrs</div>' +
+        row('Keep current', k, COLORS.keep, k===min) +
+        row('Smaller petrol', i, COLORS.petrol, i===min) +
+        row('Solar EV', e, COLORS.solar, e===min);
+      grid.appendChild(card);
+    });
+
+    function row(name, val, color, isLowest){
+      return '<div class="horizon-row'+(isLowest?' lowest':'')+'">'+
+        '<span class="swatch" style="background:'+color+'"></span>'+
+        '<span class="name">'+name+(isLowest?'<span class="tag">lowest</span>':'')+'</span>'+
+        '<span class="val mono">'+rand(val)+'</span>'+
+      '</div>';
+    }
+  }
+
+  function firstCrossYear(cumA, cumB){
+    // first year index where A becomes <= B (A cheaper than or equal to B), after year 0
+    for (var t=1; t<=MAXYEAR; t++){
+      if (cumA[t] <= cumB[t]) return t;
+    }
+    return null;
+  }
+
+  function renderCallouts(series){
+    var el = document.getElementById('callouts');
+    var vsKeep = firstCrossYear(series.evCum, series.keepCum);
+    var vsIce  = firstCrossYear(series.evCum, series.iceCum);
+    var lines = [];
+
+    if (vsIce) lines.push('The solar EV overtakes the smaller petrol car around <b>year '+vsIce+'</b>.');
+    else lines.push('Over 20 years the solar EV does not become cheaper than the smaller petrol car at these settings.');
+
+    if (vsKeep) lines.push('It overtakes simply keeping your current car around <b>year '+vsKeep+'</b>.');
+    else lines.push('It does not become cheaper than keeping your current car within 20 years at these settings.');
+
+    el.innerHTML = lines.map(function(l){ return '<p>'+l+'</p>'; }).join('');
+  }
+
+  // ---------------- Chart ----------------
+  var svgNS = "http://www.w3.org/2000/svg";
+  var PAD = { l:56, r:64, t:14, b:28 };
+  var W = 720, H = 340;
+
+  function renderChart(series){
+    var svg = document.getElementById('chart');
+    svg.innerHTML = '';
+
+    var allVals = series.keepCum.concat(series.iceCum, series.evCum);
+    var maxV = Math.max.apply(null, allVals);
+    var minV = Math.min(0, Math.min.apply(null, allVals));
+    var niceMax = niceCeiling(maxV);
+    var niceMin = minV < 0 ? -niceCeiling(-minV) : 0;
+
+    function x(t){ return PAD.l + (t/MAXYEAR) * (W - PAD.l - PAD.r); }
+    function y(v){ return H - PAD.b - ((v-niceMin)/(niceMax-niceMin)) * (H - PAD.t - PAD.b); }
+
+    // gridlines + y labels
+    var ySteps = 5;
+    for (var gi=0; gi<=ySteps; gi++){
+      var v = niceMin + (niceMax-niceMin)*gi/ySteps;
+      var yy = y(v);
+      addLine(svg, PAD.l, yy, W-PAD.r, yy, 'gridline');
+      addText(svg, PAD.l-8, yy+3, formatShortRand(v), 'axis-label', 'end');
+    }
+    // x gridlines at horizons
+    [0,5,10,15,20].forEach(function(t){
+      var xx = x(t);
+      addLine(svg, xx, PAD.t, xx, H-PAD.b, 'gridline');
+      addText(svg, xx, H-PAD.b+16, t===0?'today':('yr '+t), 'axis-label', 'middle');
+    });
+
+    var seriesDefs = [
+      {key:'keepCum', color:COLORS.keep, name:'Keep current'},
+      {key:'iceCum',  color:COLORS.petrol, name:'Smaller petrol'},
+      {key:'evCum',   color:COLORS.solar, name:'Solar EV'}
+    ];
+
+    var dotGroups = [];
+    seriesDefs.forEach(function(sd){
+      var pts = series.years.map(function(t,idx){ return [x(t), y(series[sd.key][idx])]; });
+      var d = 'M' + pts.map(function(p){ return p[0].toFixed(1)+','+p[1].toFixed(1); }).join(' L');
+      addPath(svg, d, sd.color);
+
+      // horizon dots
+      var dg = [];
+      [5,10,15,20].forEach(function(t){
+        var p = pts[t];
+        dg.push(addCircle(svg, p[0], p[1], 4, sd.color, 'series-dot'));
+      });
+      dotGroups.push(dg);
+
+      // end label
+      var last = pts[pts.length-1];
+      addText(svg, last[0]+8, last[1]+4, formatShortRand(series[sd.key][MAXYEAR]), 'end-label', 'start', sd.color);
+    });
+
+    // hover layer
+    var crosshair = document.createElementNS(svgNS,'line');
+    crosshair.setAttribute('class','crosshair');
+    crosshair.setAttribute('y1', PAD.t); crosshair.setAttribute('y2', H-PAD.b);
+    svg.appendChild(crosshair);
+
+    var hoverDots = seriesDefs.map(function(sd){ return addCircle(svg, 0,0,5, sd.color,'series-dot hoverdot'); });
+
+    var capture = document.createElementNS(svgNS,'rect');
+    capture.setAttribute('x', PAD.l); capture.setAttribute('y', PAD.t);
+    capture.setAttribute('width', W-PAD.l-PAD.r); capture.setAttribute('height', H-PAD.t-PAD.b);
+    capture.setAttribute('fill','transparent'); capture.style.cursor='crosshair';
+    svg.appendChild(capture);
+
+    var tooltip = document.getElementById('tooltip');
+    var wrap = document.getElementById('chartWrap');
+
+    capture.addEventListener('mousemove', function(evt){
+      var rect = svg.getBoundingClientRect();
+      var relX = (evt.clientX - rect.left) * (W/rect.width);
+      var t = Math.round( ((relX - PAD.l) / (W-PAD.l-PAD.r)) * MAXYEAR );
+      t = Math.max(0, Math.min(MAXYEAR, t));
+      var xx = x(t);
+      crosshair.setAttribute('x1', xx); crosshair.setAttribute('x2', xx);
+      crosshair.style.opacity = 1;
+
+      var html = '<div class="yr">'+(t===0?'Today':('Year '+t))+'</div>';
+      seriesDefs.forEach(function(sd, i){
+        var yy = y(series[sd.key][t]);
+        hoverDots[i].setAttribute('cx', xx); hoverDots[i].setAttribute('cy', yy);
+        hoverDots[i].style.opacity = 1;
+        html += '<div class="row"><span class="swatch" style="background:'+sd.color+'"></span>'+sd.name+': <span class="mono">'+rand(series[sd.key][t])+'</span></div>';
+      });
+      tooltip.innerHTML = html;
+      tooltip.style.opacity = 1;
+      var wrapRect = wrap.getBoundingClientRect();
+      var px = (xx/W) * wrapRect.width;
+      var py = (y(Math.max.apply(null, seriesDefs.map(function(sd){return series[sd.key][t];})))/H) * wrapRect.height;
+      tooltip.style.left = px + 'px';
+      tooltip.style.top = py + 'px';
+    });
+    capture.addEventListener('mouseleave', function(){
+      crosshair.style.opacity = 0;
+      hoverDots.forEach(function(d){ d.style.opacity = 0; });
+      tooltip.style.opacity = 0;
+    });
+  }
+
+  function niceCeiling(v){
+    if (v<=0) return 100000;
+    var mag = Math.pow(10, Math.floor(Math.log10(v)));
+    var norm = v/mag;
+    var step = norm<=1?1:norm<=2?2:norm<=5?5:10;
+    return step*mag;
+  }
+  function formatShortRand(v){
+    var av = Math.abs(v);
+    var s = av>=1000 ? (v/1000).toFixed(av>=100000?0:0)+'k' : Math.round(v).toString();
+    if (av>=1000) s = (v<0?'-':'') + Math.round(av/1000)+'k';
+    else s = Math.round(v).toString();
+    return 'R'+s;
+  }
+  function addLine(svg,x1,y1,x2,y2,cls){
+    var l=document.createElementNS(svgNS,'line');
+    l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);
+    l.setAttribute('class',cls); svg.appendChild(l); return l;
+  }
+  function addText(svg,x,y,text,cls,anchor,fill){
+    var t=document.createElementNS(svgNS,'text');
+    t.setAttribute('x',x);t.setAttribute('y',y);t.setAttribute('class',cls);
+    t.setAttribute('text-anchor',anchor||'middle');
+    if (fill) t.setAttribute('fill',fill);
+    t.textContent=text; svg.appendChild(t); return t;
+  }
+  function addPath(svg,d,color){
+    var p=document.createElementNS(svgNS,'path');
+    p.setAttribute('d',d); p.setAttribute('class','series-line'); p.setAttribute('stroke',color);
+    svg.appendChild(p); return p;
+  }
+  function addCircle(svg,cx,cy,r,fill,cls){
+    var c=document.createElementNS(svgNS,'circle');
+    c.setAttribute('cx',cx);c.setAttribute('cy',cy);c.setAttribute('r',r);
+    c.setAttribute('fill',fill); c.setAttribute('class',cls||''); svg.appendChild(c); return c;
+  }
+
+  function renderLegend(){
+    var legend = document.getElementById('legend');
+    var items = [['Keep current',COLORS.keep],['Smaller petrol',COLORS.petrol],['Solar EV',COLORS.solar]];
+    legend.innerHTML = items.map(function(it){
+      return '<span class="legend-item"><span class="swatch" style="background:'+it[1]+'"></span>'+it[0]+'</span>';
+    }).join('');
+  }
+
+  function saveState(s){
+    try{ localStorage.setItem(STORE_KEY, JSON.stringify(s)); }catch(e){}
+  }
+  function loadState(){
+    try{
+      var raw = localStorage.getItem(STORE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    }catch(e){ return null; }
+  }
+
+  function update(){
+    updateLabels();
+    document.getElementById('batteryFields').setAttribute('data-off', document.getElementById('batteryOn').checked ? 'false':'true');
+    var s = readState();
+    var series = computeSeries(s);
+    renderHorizons(series);
+    renderCallouts(series);
+    renderChart(series);
+    saveState(s);
+  }
+
+  document.addEventListener('DOMContentLoaded', function(){
+    var saved = loadState();
+    applyState(saved || defaults);
+    renderLegend();
+
+    ids.forEach(function(id){
+      document.getElementById(id).addEventListener('input', update);
+    });
+    document.getElementById('batteryOn').addEventListener('change', update);
+    document.getElementById('resetBtn').addEventListener('click', function(){
+      applyState(defaults);
+      update();
+    });
+
+    update();
+  });
+})();
+</script>

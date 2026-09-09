@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Last-Mile Delivery TCO Calculator (South Africa)</title>
+<style>
+  :root{
+    --icec:#8a5a2b; --evc:#1a7d3c; --elec:#2563d4;
+    --bg:#f6f7f9; --card:#fff; --ink:#1f2733; --muted:#6b7480; --line:#e3e7ec; --accent:#0f766e;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+       background:var(--bg);color:var(--ink);line-height:1.5;padding:22px}
+  .wrap{max-width:1040px;margin:0 auto}
+  h1{font-size:25px;margin:0 0 4px}
+  .sub{color:var(--muted);margin:0 0 20px;font-size:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:18px;
+        box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 14px}
+  .presets{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+  .presets button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 14px;font-size:13px;
+                  font-weight:600;cursor:pointer;color:var(--ink)}
+  .presets button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .pdesc{font-size:12px;color:var(--muted);margin-top:8px;min-height:16px}
+  .controls{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px 26px}
+  @media(max-width:760px){.controls{grid-template-columns:1fr 1fr}}
+  @media(max-width:520px){.controls{grid-template-columns:1fr}}
+  .ctrl label{display:flex;justify-content:space-between;font-weight:600;font-size:13px;margin-bottom:6px}
+  .ctrl .val{color:var(--accent);font-variant-numeric:tabular-nums}
+  input[type=range]{width:100%;accent-color:var(--accent);height:4px}
+  .grouplab{grid-column:1/-1;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;
+            color:var(--muted);border-top:1px dashed var(--line);padding-top:12px;margin:2px 0 -4px}
+  .toggles{display:flex;gap:22px;flex-wrap:wrap;margin-top:12px}
+  .toggles .tgroup{display:flex;flex-direction:column;gap:6px}
+  .toggles .tgroup span{font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted)}
+  .toggles .tbtns{display:flex;gap:6px;flex-wrap:wrap}
+  .toggles .tbtns button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:600;cursor:pointer;color:var(--ink)}
+  .toggles .tbtns button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .hint{font-size:11px;color:var(--muted);margin-top:3px}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:right;padding:9px 8px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+  th:first-child,td:first-child{text-align:left}
+  thead th{font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted)}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:7px;vertical-align:middle}
+  td.win{background:#eef6f0;font-weight:700}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr}}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+  @media(max-width:760px){.grid3{grid-template-columns:1fr}}
+  .kpi{background:#fbfbfc;border:1px solid var(--line);border-radius:10px;padding:14px}
+  .kpi .lab{font-size:11px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+  .kpi .num{font-size:22px;font-weight:700}
+  .kpi .sub{font-size:11px;color:var(--muted);margin-top:4px}
+  .legend{display:flex;gap:16px;font-size:12px;margin:4px 0 10px;flex-wrap:wrap;align-items:center}
+  .legend i{width:11px;height:11px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:middle}
+  .verdict{font-size:13px;background:#f0f4f9;border-radius:9px;padding:12px 14px;margin-top:14px;color:#33414f}
+  .flag{background:#fdf6e3;border-left:4px solid var(--accent);border-radius:8px;padding:10px 14px;font-size:12px;color:#5a4326;margin-top:12px}
+  .calcnote{font-size:13px;color:#33414f}
+  .calcnote li{margin-bottom:7px}
+  .calcnote b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Last-Mile Delivery Fleet Total Cost of Ownership</h1>
+  <p class="sub">Diesel or petrol vs electric van economics for urban stop-start delivery duty. Depot charging, payload penalty and real-world efficiency are all adjustable. Figures are nominal Rand. Working assumptions, adjust every slider to test your own fleet data.</p>
+
+  <div class="card">
+    <h2>Scenario presets</h2>
+    <div class="presets" id="presets"></div>
+    <div class="pdesc" id="pdesc"></div>
+  </div>
+
+  <div class="card">
+    <h2>Vehicle class</h2>
+    <div class="toggles" style="margin-top:0">
+      <div class="tgroup"><span>Class</span><div class="tbtns"><button id="clsSmall">Small van, about 1 tonne</button><button id="clsLarge">Large van, about 3.5 tonnes</button></div></div>
+    </div>
+    <div class="hint" id="classNote" style="margin-top:10px"></div>
+  </div>
+
+  <div class="card">
+    <h2>Adjust the variables</h2>
+    <div class="controls">
+      <div class="grouplab">Utilisation</div>
+      <div class="ctrl"><label>Annual mileage <span class="val"><span id="mileageV"></span> km</span></label><input type="range" id="mileage" min="15000" max="80000" step="1000"></div>
+      <div class="ctrl"><label>Operating days per year <span class="val"><span id="daysV"></span></span></label><input type="range" id="days" min="240" max="310" step="5"></div>
+      <div class="ctrl"><label>Drops per operating day <span class="val"><span id="dropsV"></span></span></label><input type="range" id="drops" min="20" max="160" step="5"></div>
+
+      <div class="grouplab">Vehicle price</div>
+      <div class="ctrl"><label>ICE van <span class="val">R<span id="priceIceV"></span>k</span></label><input type="range" id="priceIce" min="300000" max="900000" step="10000"></div>
+      <div class="ctrl"><label>EV van <span class="val">R<span id="priceEvV"></span>k</span></label><input type="range" id="priceEv" min="500000" max="1500000" step="10000"></div>
+
+      <div class="grouplab">Financing</div>
+      <div class="ctrl"><label>Interest rate <span class="val"><span id="rateV"></span>%</span></label><input type="range" id="rate" min="8" max="20" step="0.5"><div class="hint">Commercial fleet finance rate.</div></div>
+      <div class="ctrl"><label>Loan term <span class="val"><span id="termV"></span> mo</span></label><input type="range" id="term" min="24" max="60" step="6"></div>
+
+      <div class="grouplab">Energy and charging</div>
+      <div class="ctrl"><label>Fuel price <span class="val">R<span id="pFuelV"></span>/L</span></label><input type="range" id="pFuel" min="15" max="30" step="0.10"></div>
+      <div class="ctrl"><label>Electricity price <span class="val">R<span id="pElecV"></span>/kWh</span></label><input type="range" id="pElec" min="1" max="6" step="0.10"></div>
+      <div class="ctrl"><label>Depot charging infrastructure <span class="val">R<span id="depotCapexV"></span></span></label><input type="range" id="depotCapex" min="0" max="90000" step="5000"></div>
+      <div class="ctrl"><label>Fuel escalation <span class="val"><span id="escDV"></span>%/yr</span></label><input type="range" id="escD" min="0" max="15" step="0.5"></div>
+      <div class="ctrl"><label>Electricity escalation <span class="val"><span id="escEV"></span>%/yr</span></label><input type="range" id="escE" min="0" max="20" step="0.5"></div>
+      <div class="ctrl"><label>Base EV lifespan <span class="val"><span id="lifeV"></span> yrs</span></label><input type="range" id="life" min="6" max="14" step="1"></div>
+    </div>
+    <div class="toggles">
+      <div class="tgroup"><span>Duty cycle</span><div class="tbtns"><button id="payCubes">Volume-limited (cubes out)</button><button id="payWeighs">Mass-limited (weighs out)</button></div></div>
+      <div class="tgroup"><span>Charging strategy</span><div class="tbtns"><button id="chgDepot">Depot, slow, off-peak overnight</button><button id="chgPublic">Public, fast, daytime top-up</button></div></div>
+      <div class="tgroup"><span>Climate</span><div class="tbtns"><button id="climTemp">Temperate</button><button id="climExt">Hot / cold extremes</button></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Why this sector looks different from taxis and private cars</h2>
+    <div class="calcnote">
+      <p style="margin-top:0">Two features of urban delivery duty shift the comparison in the EV's favour more than for either private cars or long-route taxis:</p>
+      <ul style="margin:0;padding-left:18px">
+        <li><b>Stop-start driving penalises combustion vans more than their rated efficiency suggests.</b> This model applies a real-world efficiency penalty to the ICE van to reflect that. The EV figure needs less correction, because regenerative braking recovers much of the energy stop-start driving would otherwise waste.</li>
+        <li><b>Depot charging is cheap and low-risk.</b> A single overnight connection at an off-peak tariff avoids the public-charging premium entirely, unlike a taxi or private car that may depend on public infrastructure.</li>
+        <li><b>Battery mass reduces payload.</b> Whether this matters depends on whether the route is volume-limited or mass-limited, set with the duty cycle toggle above.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="kpi"><div class="lab">Cost per km, ICE</div><div class="num" id="kCkmIce"></div></div>
+    <div class="kpi"><div class="lab">Cost per km, EV</div><div class="num" id="kCkmEv"></div><div class="sub" id="kCkmEvSub"></div></div>
+  </div>
+  <div class="grid2" style="margin-top:14px">
+    <div class="kpi"><div class="lab">Cost per drop, ICE</div><div class="num" id="kCdropIce"></div></div>
+    <div class="kpi"><div class="lab">Cost per drop, EV</div><div class="num" id="kCdropEv"></div></div>
+  </div>
+
+  <div class="card" style="margin-top:18px">
+    <h2>Payload comparison</h2>
+    <table><thead><tr><th></th><th>ICE</th><th>EV</th><th>Difference</th></tr></thead><tbody id="payloadBody"></tbody></table>
+    <div class="hint" style="margin-top:8px">The payload penalty only becomes an operating cost where a route is mass-limited rather than volume-limited.</div>
+  </div>
+
+  <div class="card">
+    <h2>Cumulative TCO by horizon (nominal ZAR)</h2>
+    <table><thead><tr><th>Horizon</th>
+      <th><span class="dot" style="background:var(--icec)"></span>ICE</th>
+      <th><span class="dot" style="background:var(--evc)"></span>EV</th>
+      <th>EV premium</th></tr></thead>
+      <tbody id="tcoBody"></tbody></table>
+    <div class="hint" style="margin-top:8px">Includes depot charging infrastructure, amortised once, as its own capital line for the EV. A hard-cliff battery replacement inserts a full second vehicle purchase, net of salvage, when the effective lifespan is reached inside the horizon.</div>
+  </div>
+
+  <div class="card">
+    <h2>Cumulative cost forecast, 10 years</h2>
+    <div class="legend">
+      <span><i style="background:var(--icec)"></i>ICE</span>
+      <span><i style="background:var(--evc)"></i>EV</span>
+      <span style="margin-left:auto;color:var(--muted)">Running total spend over 10 years</span>
+    </div>
+    <div id="forecast"></div>
+  </div>
+
+  <div class="card">
+    <h2>What the model is saying right now</h2>
+    <div class="verdict" id="verdict"></div>
+    <div class="flag" id="flag"></div>
+  </div>
+
+  <div class="card">
+    <h2>Cost breakdown at 5 years</h2>
+    <table><thead><tr><th>Component</th>
+      <th><span class="dot" style="background:var(--icec)"></span>ICE</th>
+      <th><span class="dot" style="background:var(--evc)"></span>EV</th></tr></thead>
+      <tbody id="breakBody"></tbody></table>
+  </div>
+
+  <div class="card">
+    <h2>How the model is built</h2>
+    <ol class="calcnote">
+      <li><b>Capital.</b> Purchase price minus resale value at the end of the horizon, using a type-specific resale curve. A hard-cliff battery replacement inserts a second vehicle purchase, net of salvage, when the effective lifespan is reached inside the horizon.</li>
+      <li><b>Financing interest.</b> A standard amortising loan at the chosen commercial fleet rate and term, isolated from capital depreciation.</li>
+      <li><b>Energy.</b> Fuel or electricity for the year's kilometres, using real-world efficiency for the ICE van (a stop-start penalty over its rated figure) and close to rated efficiency for the EV, since regenerative braking recovers much of that penalty.</li>
+      <li><b>Depot charging infrastructure.</b> A one-off capital line for the EV, separate from the vehicle purchase, so its effect on the total can be isolated from the alternative of relying on public charging.</li>
+      <li><b>Maintenance, insurance and tyres.</b> Annual amounts rising with general cost inflation, with tyre replacement on a distance-based interval that reflects each vehicle's weight and torque.</li>
+      <li><b>Effective EV lifespan.</b> The base lifespan slider is reduced automatically where public fast charging and climate extremes are both selected.</li>
+    </ol>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const R=n=>"R"+Math.round(n).toLocaleString("en-ZA");
+const R2=n=>"R"+n.toFixed(2);
+const HOR=[3,5,7,10];
+
+const CLASS_DEFAULTS = {
+  small:{priceIce:380000, priceEv:650000, iceEff:9.0, evEff:22, payloadIce:800, payloadEv:650, tyreIntIce:45000, tyreIntEv:38000, tyreCostIce:5500, tyreCostEv:7000, maintIce:22000, maintEv:10000, insureIce:16000, insureEv:20000, label:'Small van, about 1 tonne gross vehicle mass'},
+  large:{priceIce:750000, priceEv:1250000, iceEff:14.0, evEff:32, payloadIce:1500, payloadEv:1150, tyreIntIce:50000, tyreIntEv:42000, tyreCostIce:8500, tyreCostEv:11000, maintIce:32000, maintEv:15000, insureIce:24000, insureEv:30000, label:'Large van, about 3.5 tonnes gross vehicle mass'}
+};
+
+const state = {
+  vclass:'small', mileage:40000, days:280, drops:70, payloadMode:'cubes',
+  rate:12, term:48, pFuel:21.85, pElec:2.20, charging:'depot', depotCapex:35000,
+  climate:'temp', escD:7.7, escE:11.9, life:9
+};
+function cls(){ return CLASS_DEFAULTS[state.vclass]; }
+
+function resaleICE(yr){ return interp({0:1,3:0.55,5:0.42,7:0.30,10:0.18}, yr); }
+function resaleEV(yr){ return interp({0:1,3:0.45,5:0.28,7:0.16,10:0.08}, yr); }
+function interp(pts, yr){
+  const keys=Object.keys(pts).map(Number).sort((a,b)=>a-b);
+  if(yr<=keys[0]) return pts[keys[0]];
+  if(yr>=keys[keys.length-1]) return pts[keys[keys.length-1]];
+  for(let i=0;i<keys.length-1;i++){
+    if(yr>=keys[i]&&yr<=keys[i+1]){ const t=(yr-keys[i])/(keys[i+1]-keys[i]); return pts[keys[i]]+t*(pts[keys[i+1]]-pts[keys[i]]); }
+  }
+}
+function loanSchedule(price, ratePct, termMonths){
+  const r=(ratePct/100)/12, n=termMonths;
+  const pay = r===0? price/n : price*r/(1-Math.pow(1+r,-n));
+  let bal=price; const byYear={};
+  for(let m=1;m<=n;m++){ const interest=bal*r, principal=pay-interest; bal-=principal; const yr=Math.ceil(m/12); byYear[yr]=(byYear[yr]||0)+interest; }
+  return {payment:pay, interestByYear:byYear};
+}
+function effLife(){
+  let life=state.life;
+  if(state.charging==='public') life-=1.2;
+  if(state.climate==='extreme') life-=(state.charging==='public'?1.2:0.8);
+  return Math.max(4, life);
+}
+function evEfficiency(){ let base=cls().evEff; if(state.climate==='extreme') base*=1.12; return base; }
+function iceEfficiency(){ return cls().iceEff*1.20; }
+
+function buildSeries(vehicle, horizon){
+  const isEV=vehicle==='ev'; const c=cls();
+  const price0=isEV?c.priceEv:c.priceIce;
+  const life=isEV?effLife():99;
+  let purchYear=0, curPrice=price0, loan=loanSchedule(curPrice,state.rate,state.term);
+  let cum={capital:0,interest:0,energy:0,maint:0,insure:0,tyres:0,depot:0};
+  let totalKm=0, lastTyre=0;
+  if(isEV) cum.depot+=state.depotCapex;
+  for(let y=1;y<=horizon;y++){
+    if(isEV && (y-purchYear)>life){
+      const salvage=curPrice*0.06; cum.capital+=(curPrice-salvage);
+      purchYear=y-1; curPrice=c.priceEv; loan=loanSchedule(curPrice,state.rate,state.term);
+    }
+    const priceD=state.pFuel*Math.pow(1+state.escD/100,y-1), priceE=state.pElec*Math.pow(1+state.escE/100,y-1);
+    const energy=isEV?(state.mileage/100)*evEfficiency()*priceE:(state.mileage/100)*iceEfficiency()*priceD;
+    const maint=(isEV?c.maintEv:c.maintIce)*Math.pow(1.06,y-1), insure=(isEV?c.insureEv:c.insureIce)*Math.pow(1.06,y-1);
+    totalKm+=state.mileage; let tyreCost=0;
+    const interval=isEV?c.tyreIntEv:c.tyreIntIce, tcost=isEV?c.tyreCostEv:c.tyreCostIce;
+    while(totalKm-lastTyre>=interval){ lastTyre+=interval; tyreCost+=tcost*Math.pow(1.06,y-1); }
+    const yWithinLoan=y-purchYear;
+    const interest=(yWithinLoan*12<=state.term)?(loan.interestByYear[yWithinLoan]||0):0;
+    cum.interest+=interest; cum.energy+=energy; cum.maint+=maint; cum.insure+=insure; cum.tyres+=tyreCost;
+  }
+  const resaleFrac=isEV?resaleEV(horizon-purchYear):resaleICE(horizon);
+  const finalResale=curPrice*resaleFrac;
+  const capitalTotal=(isEV&&purchYear>0)?cum.capital+(curPrice-finalResale):(price0-finalResale);
+  const total=capitalTotal+cum.interest+cum.energy+cum.maint+cum.insure+cum.tyres+cum.depot;
+  return {total, capital:capitalTotal, interest:cum.interest, energy:cum.energy, maint:cum.maint, insure:cum.insure, tyres:cum.tyres, depot:cum.depot};
+}
+
+function labels(){
+  const c=cls();
+  $("mileageV").textContent=state.mileage.toLocaleString("en-ZA"); $("daysV").textContent=state.days; $("dropsV").textContent=state.drops;
+  $("priceIceV").textContent=Math.round(c.priceIce/1000); $("priceEvV").textContent=Math.round(c.priceEv/1000);
+  $("rateV").textContent=state.rate; $("termV").textContent=state.term;
+  $("pFuelV").textContent=state.pFuel.toFixed(2); $("pElecV").textContent=state.pElec.toFixed(2);
+  $("depotCapexV").textContent=Math.round(state.depotCapex).toLocaleString("en-ZA");
+  $("escDV").textContent=state.escD; $("escEV").textContent=state.escE; $("lifeV").textContent=state.life;
+  $("clsSmall").classList.toggle('on', state.vclass==='small'); $("clsLarge").classList.toggle('on', state.vclass==='large');
+  $("classNote").textContent=c.label+". Defaults update automatically. Prices can still be adjusted directly.";
+  $("payCubes").classList.toggle('on', state.payloadMode==='cubes'); $("payWeighs").classList.toggle('on', state.payloadMode==='weighs');
+  $("chgDepot").classList.toggle('on', state.charging==='depot'); $("chgPublic").classList.toggle('on', state.charging==='public');
+  $("climTemp").classList.toggle('on', state.climate==='temp'); $("climExt").classList.toggle('on', state.climate==='extreme');
+}
+
+function fillTable(){
+  let rows=''; const chart={ice:[],ev:[]};
+  HOR.forEach(h=>{
+    const dICE=buildSeries('ice',h).total, dEV=buildSeries('ev',h).total;
+    const min=Math.min(dICE,dEV);
+    rows+=`<tr><td>${h} yr</td><td class="${dICE===min?'win':''}">${R(dICE)}</td><td class="${dEV===min?'win':''}">${R(dEV)}</td><td>${R(dEV-dICE)}</td></tr>`;
+    chart.ice.push(dICE); chart.ev.push(dEV);
+  });
+  $("tcoBody").innerHTML=rows;
+  return chart;
+}
+function fillBreakdown(){
+  const bICE=buildSeries('ice',5), bEV=buildSeries('ev',5);
+  const comps=[['Capital','capital'],['Financing interest','interest'],['Energy','energy'],['Maintenance','maint'],['Insurance','insure'],['Tyres','tyres'],['Depot charging infrastructure','depot']];
+  let rows=comps.map(([label,key])=>`<tr><td>${label}</td><td>${R(bICE[key]||0)}</td><td>${R(bEV[key]||0)}</td></tr>`).join('');
+  rows+=`<tr style="font-weight:700"><td>Total</td><td>${R(bICE.total)}</td><td>${R(bEV.total)}</td></tr>`;
+  $("breakBody").innerHTML=rows;
+}
+function fillPayload(){
+  const c=cls(); const penalty=c.payloadIce-c.payloadEv; const pct=(penalty/c.payloadIce*100).toFixed(0);
+  $("payloadBody").innerHTML=`<tr><td>Rated payload</td><td>${c.payloadIce} kg</td><td>${c.payloadEv} kg</td><td>-${penalty} kg (${pct}%)</td></tr>`+
+    `<tr><td>Duty cycle</td><td colspan="3">${state.payloadMode==='cubes'?'Volume-limited. Payload penalty does not constrain drops per load.':'Mass-limited. The EV likely needs more loads or trips to carry the same freight.'}</td></tr>`;
+}
+function drawForecast(chart){
+  const W=960,H=280,L=64,Rg=16,T=14,B=28,pw=W-L-Rg,ph=H-T-B;
+  const max=Math.max(...chart.ice,...chart.ev)*1.08;
+  const sx=i=>L+(i/(HOR.length-1))*pw, sy=v=>T+ph-(v/max)*ph;
+  let g='';
+  for(let i=0;i<=4;i++){ const v=max*i/4; g+=`<line x1="${L}" y1="${sy(v)}" x2="${L+pw}" y2="${sy(v)}" stroke="#eceff3"/><text x="${L-8}" y="${sy(v)+4}" text-anchor="end" font-size="10" fill="#8a929c">R${Math.round(v/1000)}k</text>`; }
+  HOR.forEach((h,i)=>{ g+=`<text x="${sx(i)}" y="${H-10}" text-anchor="middle" font-size="10" fill="#8a929c">${h}yr</text>`; });
+  function line(pts,col){
+    let d=pts.map((v,i)=>(i?'L':'M')+sx(i).toFixed(1)+','+sy(v).toFixed(1)).join(' ');
+    return `<path d="${d}" fill="none" stroke="${col}" stroke-width="2.5"/>`+pts.map((v,i)=>`<circle cx="${sx(i)}" cy="${sy(v)}" r="3.5" fill="${col}"/>`).join('');
+  }
+  g+=line(chart.ice,'var(--icec)')+line(chart.ev,'var(--evc)');
+  $("forecast").innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%">${g}</svg>`;
+}
+function verdictText(ckmIce,ckmEv,cdropIce,cdropEv){
+  let v=`At these settings, the ICE van costs ${R2(ckmIce)} per km against ${R2(ckmEv)} for the EV, and ${R(cdropIce)} per drop against ${R(cdropEv)} for the EV, on a year-one cash basis. `;
+  $("verdict").innerHTML=v;
+  const t5ICE=buildSeries('ice',5).total, t5EV=buildSeries('ev',5).total;
+  let f = t5EV<t5ICE
+    ? `Over a 5-year horizon the EV's cumulative total (${R(t5EV)}) is lower than the ICE van's (${R(t5ICE)}), even though its year-one cash cost is higher. `
+    : `Over a 5-year horizon the ICE van remains cheaper in total (${R(t5ICE)} against ${R(t5EV)} for the EV) at these settings. `;
+  f+='These are working assumptions. Use the sliders to test your own route and fleet data.';
+  $("flag").textContent=f;
+}
+function render(){
+  labels();
+  const ice1=buildSeries('ice',1).total, ev1=buildSeries('ev',1).total;
+  const ckmIce=ice1/state.mileage, ckmEv=ev1/state.mileage;
+  $("kCkmIce").textContent=R2(ckmIce); $("kCkmEv").textContent=R2(ckmEv);
+  $("kCkmEvSub").textContent=(ckmEv>ckmIce?'+':'')+R2(ckmEv-ckmIce)+' vs ICE';
+  const dropsPerYear=state.drops*state.days;
+  $("kCdropIce").textContent=R2(ice1/dropsPerYear); $("kCdropEv").textContent=R2(ev1/dropsPerYear);
+  fillPayload();
+  const chart=fillTable(); fillBreakdown(); drawForecast(chart);
+  verdictText(ckmIce,ckmEv,ice1/dropsPerYear,ev1/dropsPerYear);
+}
+
+const sliderIds=["mileage","days","drops","priceIce","priceEv","rate","term","pFuel","pElec","depotCapex","escD","escE","life"];
+function readSliderInto(id){
+  const v=Number($(id).value);
+  if(id==='priceIce') cls().priceIce=v;
+  else if(id==='priceEv') cls().priceEv=v;
+  else { const map={mileage:'mileage',days:'days',drops:'drops',rate:'rate',term:'term',pFuel:'pFuel',pElec:'pElec',depotCapex:'depotCapex',escD:'escD',escE:'escE',life:'life'}; state[map[id]]=v; }
+}
+sliderIds.forEach(id=>$(id).addEventListener('input',()=>{ readSliderInto(id); markCustom(); render(); }));
+
+$("clsSmall").addEventListener('click',()=>{state.vclass='small'; markCustom(); syncSliders(); render();});
+$("clsLarge").addEventListener('click',()=>{state.vclass='large'; markCustom(); syncSliders(); render();});
+$("payCubes").addEventListener('click',()=>{state.payloadMode='cubes'; markCustom(); render();});
+$("payWeighs").addEventListener('click',()=>{state.payloadMode='weighs'; markCustom(); render();});
+$("chgDepot").addEventListener('click',()=>{state.charging='depot'; markCustom(); render();});
+$("chgPublic").addEventListener('click',()=>{state.charging='public'; markCustom(); render();});
+$("climTemp").addEventListener('click',()=>{state.climate='temp'; markCustom(); render();});
+$("climExt").addEventListener('click',()=>{state.climate='extreme'; markCustom(); render();});
+
+const DEFAULTS = Object.assign({}, state);
+const PRESETS = {
+  'Central, small van': {vclass:'small'},
+  'Central, large van': {vclass:'large'},
+  'High-density urban, many short drops': {vclass:'small', mileage:25000, drops:130, charging:'depot'},
+  'Long suburban routes': {vclass:'large', mileage:65000, drops:35},
+  'Depot-charging optimal': {charging:'depot', depotCapex:35000, climate:'temp'},
+  'Public-charging stress test': {charging:'public', depotCapex:0, climate:'extreme', life:7},
+};
+let activePreset='Central, small van';
+function markCustom(){ activePreset='custom'; document.querySelectorAll('#presets button').forEach(b=>b.classList.toggle('on', b.dataset.name===activePreset)); }
+function syncSliders(){
+  const c=cls();
+  $("mileage").value=state.mileage; $("days").value=state.days; $("drops").value=state.drops;
+  $("priceIce").value=c.priceIce; $("priceEv").value=c.priceEv;
+  $("rate").value=state.rate; $("term").value=state.term; $("pFuel").value=state.pFuel; $("pElec").value=state.pElec;
+  $("depotCapex").value=state.depotCapex; $("escD").value=state.escD; $("escE").value=state.escE; $("life").value=state.life;
+}
+const presetBar=$("presets");
+Object.keys(PRESETS).forEach(name=>{
+  const b=document.createElement('button'); b.textContent=name; b.dataset.name=name;
+  b.addEventListener('click',()=>{
+    Object.assign(state, DEFAULTS); Object.assign(state, PRESETS[name]);
+    activePreset=name; document.querySelectorAll('#presets button').forEach(x=>x.classList.toggle('on', x===b));
+    syncSliders(); render();
+  });
+  presetBar.appendChild(b);
+});
+document.querySelector('#presets button').classList.add('on');
+syncSliders(); render();
+</script>
+</body>
+</html>

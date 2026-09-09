@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nelson Mandela Bay — Economy Simulator</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+
+<!-- ============================================================
+     STYLESHEET
+     Controls all visual layout, sizing, colours, and spacing.
+     Changes here affect appearance only — not calculations.
+     ============================================================ -->
+<style>
+/* Reset — removes default browser margin/padding from all elements */
+*{box-sizing:border-box;margin:0;padding:0}
+
+/* Full-screen layout — stage fills the entire browser window */
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0f1a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif}
+.stage{position:fixed;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;background:#f0f2f5}
+
+/* Top navigation bar — dark navy, contains title and GDP potential label */
+.topbar{background:#0C447C;color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:52px;flex-shrink:0}
+.topbar h1{font-size:17px;font-weight:600;display:flex;align-items:center;gap:8px}
+.topbar p{font-size:11px;opacity:.7;margin-top:2px}
+.topbar-right{font-size:11px;opacity:.7;text-align:right}
+
+/* Middle row — levers panel | city canvas | input variables panel */
+.middle{display:flex;flex:1;overflow:hidden;min-height:0}
+
+/* LEFT PANEL — the five economic lever sliders (width fixed at 230px) */
+.lever-panel{width:230px;flex-shrink:0;background:#fff;border-right:1px solid #E0DFD8;display:flex;flex-direction:column;padding:12px 14px;overflow:hidden}
+.ptitle{font-size:10px;font-weight:700;color:#888780;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;display:flex;align-items:center;gap:5px}
+.sc-row{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px}
+.sc-btn{font-size:10px;padding:4px 9px;border-radius:20px;border:1px solid #D3D1C7;background:#fff;color:#2C2C2A;cursor:pointer;font-family:inherit;transition:all .2s}
+.sc-btn:hover{background:#f0f2f5}
+.sc-btn.on{background:#0C447C;color:#fff;border-color:#0C447C}
+.lever{margin-bottom:9px}
+.lrow{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px}
+.llabel{font-size:11px;color:#2C2C2A;display:flex;align-items:center;gap:4px}
+.llabel i{font-size:12px;color:#888780}
+.lval{font-size:11px;font-weight:700;min-width:30px;text-align:right}
+
+/* Range slider track and thumb styling */
+input[type=range]{width:100%;height:6px;border-radius:3px;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none;background:#E0DFD8}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:20px;height:20px;border-radius:50%;background:#0C447C;cursor:pointer;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#0C447C;cursor:pointer;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.divider{border:none;border-top:1px solid #F1EFE8;margin:8px 0}
+.hint{font-size:9px;color:#B4B2A9}
+
+/* Health score bar at the bottom of the lever panel */
+.score-display{margin-top:auto;padding-top:10px}
+.score-label{font-size:9px;font-weight:700;color:#888780;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+.gtrk{width:100%;height:10px;background:#f0f2f5;border-radius:5px;overflow:hidden;border:1px solid #E0DFD8}
+.gfill{height:100%;border-radius:5px;transition:width .6s ease,background .6s ease}
+.gscore-row{display:flex;justify-content:space-between;align-items:center;margin-top:4px}
+.gscore{font-size:18px;font-weight:700}
+.glevel{font-size:10px;color:#888780;font-style:italic}
+
+/* RIGHT PANEL — economy input variables and derived output values (width fixed at 210px) */
+.input-panel{width:210px;flex-shrink:0;background:#fff;border-left:1px solid #E0DFD8;display:flex;flex-direction:column;padding:12px 14px;overflow-y:auto}
+.inp-section{margin-bottom:12px}
+.inp-title{font-size:9px;font-weight:700;color:#888780;text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px;padding-bottom:4px;border-bottom:1px solid #F1EFE8}
+.inp-row{margin-bottom:8px}
+.inp-lbl{font-size:10px;color:#5F5E5A;margin-bottom:3px;display:flex;align-items:center;gap:4px}
+.inp-lbl i{font-size:11px;color:#888780}
+.inp-field{width:100%;padding:5px 8px;font-size:11px;border:1px solid #D3D1C7;border-radius:6px;font-family:inherit;color:#2C2C2A;background:#fafaf8;outline:none;transition:border .2s}
+.inp-field:focus{border-color:#0C447C}
+.inp-unit{font-size:9px;color:#B4B2A9;margin-top:2px}
+.derived-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #F1EFE8}
+.derived-row:last-child{border-bottom:none}
+.derived-lbl{font-size:10px;color:#888780}
+.derived-val{font-size:11px;font-weight:600;color:#2C2C2A}
+
+/* CITY CANVAS — fills all remaining horizontal space between the two panels */
+.city-wrap{flex:1;position:relative;overflow:hidden;min-width:0}
+.city-wrap canvas{position:absolute;inset:0;width:100%;height:100%}
+
+/* KPI BAR — four metric cards pinned to the bottom in navy */
+.kpi-bar{background:#0C447C;display:grid;grid-template-columns:repeat(4,1fr);flex-shrink:0;height:70px}
+.kpi{display:flex;flex-direction:column;justify-content:center;padding:0 16px;border-right:1px solid rgba(255,255,255,.12);position:relative;overflow:hidden}
+.kpi:last-child{border-right:none}
+.kpi-shine{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .5s}
+.klbl{font-size:10px;color:rgba(255,255,255,.6);margin-bottom:2px;letter-spacing:.02em}
+.kval{font-size:22px;font-weight:700;color:#fff;line-height:1;transition:color .4s}
+.ksub{font-size:10px;color:rgba(255,255,255,.45);margin-top:2px}
+
+/* FOOTER BAR — disclaimer and attribution pinned to the very bottom */
+.footer-bar{background:#0a1628;color:rgba(255,255,255,.55);font-size:10px;padding:5px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:16px;line-height:1.5;flex-wrap:wrap}
+.footer-bar span{white-space:nowrap}
+
+/* KPI pulse animation — fires briefly when a value updates */
+.pulse{animation:kpipulse .45s ease}
+@keyframes kpipulse{0%{transform:scale(1)}50%{transform:scale(1.1)}100%{transform:scale(1)}}
+</style>
+</head>
+<body>
+<div class="stage">
+
+  <!-- ============================================================
+       TOP BAR
+       Title and GDP potential label. The GDP potential updates
+       dynamically from the right-panel input field.
+       ============================================================ -->
+  <div class="topbar">
+    <div>
+      <h1><i class="ti ti-building-bank" aria-hidden="true"></i>Nelson Mandela Bay — Economy Simulator</h1>
+      <p>Corporate governance stakeholder briefing &nbsp;·&nbsp; Drag the levers to see real-time impact</p>
+    </div>
+    <!-- id="topRight" — updated by JS when GDP potential input changes -->
+    <div class="topbar-right" id="topRight">GDP potential: R 120bn &nbsp;·&nbsp; Base year: 2024</div>
+  </div>
+
+  <!-- ============================================================
+       MIDDLE ROW
+       Three-column layout: levers | city | inputs
+       ============================================================ -->
+  <div class="middle">
+
+    <!-- ──────────────────────────────────────────────────────────
+         LEFT PANEL: ECONOMIC LEVERS
+         Five range sliders (1–10). Each slider value feeds directly
+         into the FORMULA: HEALTH SCORE (see compute() in JS).
+         Changing any slider triggers update() which recalculates
+         ALL outputs and redraws the city.
+         ────────────────────────────────────────────────────────── -->
+    <div class="lever-panel">
+      <p class="ptitle"><i class="ti ti-sliders" aria-hidden="true"></i> Economic levers</p>
+
+      <!-- Preset scenario buttons — load fixed lever values into all five sliders -->
+      <div class="sc-row" id="scRow">
+        <button class="sc-btn on" data-s="current">Current (2024)</button>
+        <button class="sc-btn" data-s="best">Best case</button>
+        <button class="sc-btn" data-s="worst">Decline</button>
+        <button class="sc-btn" data-s="custom">Custom</button>
+      </div>
+
+      <!-- LEVER 1: Power reliability (weight 0.26 — highest weighting in score formula) -->
+      <div class="lever">
+        <div class="lrow"><span class="llabel"><i class="ti ti-bolt" aria-hidden="true"></i> Power reliability</span><span class="lval" id="vp" style="color:#E24B4A">2/10</span></div>
+        <input type="range" min="1" max="10" step="1" id="sp" value="2">
+      </div>
+
+      <!-- LEVER 2: Municipal services (weight 0.20) -->
+      <div class="lever">
+        <div class="lrow"><span class="llabel"><i class="ti ti-droplet" aria-hidden="true"></i> Municipal services</span><span class="lval" id="vm" style="color:#E24B4A">3/10</span></div>
+        <input type="range" min="1" max="10" step="1" id="sm" value="3">
+      </div>
+
+      <!-- LEVER 3: Port of PE efficiency (weight 0.22 — second highest) -->
+      <div class="lever">
+        <div class="lrow"><span class="llabel"><i class="ti ti-ship" aria-hidden="true"></i> Port of PE efficiency</span><span class="lval" id="vpo" style="color:#BA7517">5/10</span></div>
+        <input type="range" min="1" max="10" step="1" id="spo" value="5">
+      </div>
+
+      <!-- LEVER 4: Safety and crime (weight 0.18) -->
+      <div class="lever">
+        <div class="lrow"><span class="llabel"><i class="ti ti-shield" aria-hidden="true"></i> Safety and crime</span><span class="lval" id="vc" style="color:#E24B4A">3/10</span></div>
+        <input type="range" min="1" max="10" step="1" id="sc2" value="3">
+      </div>
+
+      <!-- LEVER 5: Skills and employment (weight 0.14 — lowest weighting) -->
+      <div class="lever">
+        <div class="lrow"><span class="llabel"><i class="ti ti-school" aria-hidden="true"></i> Skills and employment</span><span class="lval" id="vsk" style="color:#BA7517">4/10</span></div>
+        <input type="range" min="1" max="10" step="1" id="ssk" value="4">
+      </div>
+
+      <hr class="divider">
+      <p class="hint">1 = severe failure &nbsp;·&nbsp; 5 = adequate &nbsp;·&nbsp; 10 = world class</p>
+
+      <!-- Health score bar — visual output of the score formula, shown in the lever panel -->
+      <div class="score-display">
+        <div class="score-label">Overall health score</div>
+        <!-- Width of gfill changes with score (0–100%) — colour shifts red→amber→green -->
+        <div class="gtrk"><div class="gfill" id="gfill" style="width:33%;background:#E24B4A"></div></div>
+        <div class="gscore-row">
+          <span class="gscore" id="gscore" style="color:#E24B4A">33 / 100</span>
+          <span class="glevel" id="glevel">Critical</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CITY CANVAS — animated 2D scene driven by health score (hf = score/100) -->
+    <div class="city-wrap">
+      <canvas id="cityCanvas" aria-label="City scene growing with economic health"></canvas>
+    </div>
+
+    <!-- ──────────────────────────────────────────────────────────
+         RIGHT PANEL: ECONOMY INPUT VARIABLES
+         These five number fields set the scale assumptions for the
+         simulation. Changing them does NOT affect the health score
+         or city visual — they scale the economic OUTPUT numbers
+         (GDP, investment delta, jobs gap, growth rate, projections).
+         All five feed directly into the compute() function.
+         ────────────────────────────────────────────────────────── -->
+    <div class="input-panel">
+      <div class="inp-section">
+        <div class="inp-title"><i class="ti ti-database" style="font-size:10px"></i> Economy inputs</div>
+
+        <!-- INPUT 1: GDP potential (R bn)
+             Used in FORMULA: GDP = (gdpPot × 0.35) + (gdpPot − gdpPot×0.35) × score% × 0.85
+             Changing this raises or lowers the ceiling and floor of the GDP output.
+             Also used to calculate the 10-year reform projection baseline. -->
+        <div class="inp-row">
+          <div class="inp-lbl"><i class="ti ti-chart-arrows-vertical"></i> GDP potential (R bn)</div>
+          <input class="inp-field" type="number" id="in-gdp" value="120" min="10" max="500">
+          <div class="inp-unit">Total addressable GDP at full lever performance</div>
+        </div>
+
+        <!-- INPUT 2: Ideal annual investment (R bn)
+             Used in FORMULA: invDelta = (score% − 0.50) × invIdeal × 2
+             A higher ideal means a larger positive or negative investment delta.
+             Also controls the particle density — more investment = more R coins on screen. -->
+        <div class="inp-row">
+          <div class="inp-lbl"><i class="ti ti-currency-rand"></i> Ideal annual investment (R bn)</div>
+          <input class="inp-field" type="number" id="in-inv" value="22" min="1" max="200">
+          <div class="inp-unit">Yearly investment inflow at world-class conditions</div>
+        </div>
+
+        <!-- INPUT 3: Full employment potential (000s)
+             Used in FORMULA: jobsUnrealised = (1 − score%) × jobsPotential
+             Changing this raises the ceiling on how many jobs are shown as unrealised. -->
+        <div class="inp-row">
+          <div class="inp-lbl"><i class="ti ti-briefcase"></i> Full employment potential (000s)</div>
+          <input class="inp-field" type="number" id="in-jobs" value="120" min="10" max="999">
+          <div class="inp-unit">Jobs supportable at full economic capacity</div>
+        </div>
+
+        <!-- INPUT 4: Max growth rate (%)
+             Used in FORMULA: growth = −floorDecline + score% × (floorDecline + maxGrowth)
+             Sets the ceiling growth rate achievable at score = 100.
+             Also used in 10-year reform projection: refGrowth = maxGrowth × 0.75 -->
+        <div class="inp-row">
+          <div class="inp-lbl"><i class="ti ti-trending-up"></i> Max growth rate (%)</div>
+          <input class="inp-field" type="number" id="in-growth" value="7" min="1" max="20" step="0.5">
+          <div class="inp-unit">Annualised GDP growth at best case</div>
+        </div>
+
+        <!-- INPUT 5: Contraction floor (%)
+             Used in FORMULA: growth = −floorDecline + score% × (floorDecline + maxGrowth)
+             Sets how negative growth gets at score = 0.
+             A higher floor = more severe contraction at worst case. -->
+        <div class="inp-row">
+          <div class="inp-lbl"><i class="ti ti-trending-down"></i> Contraction floor (%)</div>
+          <input class="inp-field" type="number" id="in-floor" value="2.5" min="0.1" max="10" step="0.1">
+          <div class="inp-unit">Annual GDP decline at worst case</div>
+        </div>
+      </div>
+
+      <!-- DERIVED OUTPUTS — read-only results calculated from the formulas.
+           These update every time a lever or input changes. -->
+      <div class="inp-section">
+        <div class="inp-title"><i class="ti ti-calculator" style="font-size:10px"></i> Derived outputs</div>
+        <!-- Each id here is updated by JS in the update() function -->
+        <div class="derived-row"><span class="derived-lbl">Current GDP</span><span class="derived-val" id="d-gdp">R 64bn</span></div>
+        <div class="derived-row"><span class="derived-lbl">Growth rate</span><span class="derived-val" id="d-growth">-0.2%</span></div>
+        <div class="derived-row"><span class="derived-lbl">Investment delta</span><span class="derived-val" id="d-inv">-R 15bn</span></div>
+        <div class="derived-row"><span class="derived-lbl">Jobs gap</span><span class="derived-val" id="d-jobs">~80 000</span></div>
+        <div class="derived-row"><span class="derived-lbl">10yr GDP (current path)</span><span class="derived-val" id="d-10yr">R 68bn</span></div>
+        <div class="derived-row"><span class="derived-lbl">10yr GDP (if reformed now)</span><span class="derived-val" id="d-10yr-ref">R 70bn</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============================================================
+       KPI BAR
+       Four headline metrics pinned to the bottom. All four update
+       every time a lever or input variable changes.
+       Colour coding: green = positive, amber = neutral, red = negative.
+       ============================================================ -->
+  <div class="kpi-bar">
+    <!-- KPI 1: GDP contribution — driven by GDP potential input + health score -->
+    <div class="kpi" id="kpi-gdp"><div class="kpi-shine" id="sh-gdp"></div><div class="klbl">GDP contribution</div><div class="kval" id="kv-gdp">R 64bn</div><div class="ksub" id="sub-gdp">of R 120bn potential</div></div>
+    <!-- KPI 2: Annual growth rate — driven by maxGrowth, floorDecline inputs + health score -->
+    <div class="kpi" id="kpi-grow"><div class="kpi-shine" id="sh-grow"></div><div class="klbl">Annual growth rate</div><div class="kval" id="kv-grow">-0.2%</div><div class="ksub">10-year outlook</div></div>
+    <!-- KPI 3: Yearly investment potential — driven by invIdeal input + health score. + = flowing in, − = flowing out, ±0 = neutral -->
+    <div class="kpi" id="kpi-inv"><div class="kpi-shine" id="sh-inv"></div><div class="klbl">Yearly investment potential</div><div class="kval" id="kv-inv">-R 15bn</div><div class="ksub" id="sub-inv">vs R 22bn ideal</div></div>
+    <!-- KPI 4: Jobs unrealised — driven by full employment potential input + health score -->
+    <div class="kpi" id="kpi-jobs"><div class="kpi-shine" id="sh-jobs"></div><div class="klbl">Jobs unrealised</div><div class="kval" id="kv-jobs">~80 000</div><div class="ksub" id="sub-jobs">of 120k potential</div></div>
+  </div>
+
+  <!-- FOOTER — disclaimer and attribution, always visible at the very bottom -->
+  <div class="footer-bar">
+    <span>This simulation is a representative model for educational purposes only and does not represent real values, but rather how various factors could influence the metro's local economy.</span>
+    <span>Created for the NMBBC Think Tank by Nick Marriott and Cornel Malan &nbsp;·&nbsp; 11 June 2026</span>
+  </div>
+
+</div>
+
+<!-- ================================================================
+     JAVASCRIPT — ALL LOGIC, FORMULAS AND RENDERING
+     ================================================================ -->
+<script>
+
+// ── SLIDER AND LABEL REFERENCES ──────────────────────────────────────────────
+// SL = the five range slider INPUT elements (their .value gives the 1–10 lever score)
+// VL = the matching label SPAN elements that display the current value (e.g. "2/10")
+const SL = {
+  p:  document.getElementById('sp'),   // Power reliability slider
+  m:  document.getElementById('sm'),   // Municipal services slider
+  po: document.getElementById('spo'),  // Port efficiency slider
+  c:  document.getElementById('sc2'),  // Safety and crime slider
+  sk: document.getElementById('ssk'),  // Skills and employment slider
+};
+const VL = {
+  p:  document.getElementById('vp'),
+  m:  document.getElementById('vm'),
+  po: document.getElementById('vpo'),
+  c:  document.getElementById('vc'),
+  sk: document.getElementById('vsk'),
+};
+
+// ── PRESET SCENARIO VALUES ────────────────────────────────────────────────────
+// When a scenario button is clicked, these lever values are loaded into all sliders.
+// Changing these numbers changes what each preset scenario shows.
+const SCEN = {
+  current: { p:2, m:3, po:5, c:3, sk:4 },  // Current NMB state (2024)
+  best:    { p:9, m:8, po:9, c:8, sk:8 },  // World-class reform scenario
+  worst:   { p:1, m:1, po:3, c:2, sk:2 },  // Further economic decline scenario
+};
+
+// ── STATE VARIABLES ───────────────────────────────────────────────────────────
+// These track the animation state and are updated by update() each time sliders change.
+let targetScore  = 33;  // The score we are animating TOWARD (set by compute())
+let currentScore = 33;  // The score currently being RENDERED (interpolates to targetScore)
+let animFrame    = null; // requestAnimationFrame handle — used to cancel/restart the loop
+let carInitScore = -1;   // Tracks when cars were last re-initialised (prevents constant reset)
+let lastWindowBand = -1; // Tracks the last window-lighting band to avoid re-baking every frame
+
+// ── UTILITY FUNCTIONS ─────────────────────────────────────────────────────────
+
+// lCol — returns a colour for a lever value label (1–10)
+// Colours: red (1–2) → amber (3–4) → yellow-green (5–6) → green (7–10)
+function lCol(v) { return v>=7 ? '#1D9E75' : v>=5 ? '#639922' : v>=3 ? '#BA7517' : '#E24B4A'; }
+
+// sCol — returns a colour for an overall score (0–100)
+// Colours: red (<30) → amber (30–44) → yellow-green (45–64) → green (65+)
+function sCol(v) { return v>=65 ? '#1D9E75' : v>=45 ? '#639922' : v>=30 ? '#BA7517' : '#E24B4A'; }
+
+// lerp — linear interpolation between a and b by factor t (0=a, 1=b)
+// Used for smooth animation transitions and building height scaling
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+// easeInOut — smooth animation curve (fast start/end, slows in middle)
+// Applied to all animated transitions (city, score bar, KPI values)
+function easeInOut(t) { return t < .5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2; }
+
+// lerpCol — smoothly interpolates between two hex colour strings
+// Returns an rgb() string. Used to transition building and sky colours with health score.
+// FORMULA: each R/G/B channel = Math.round(channel1 + (channel2 - channel1) × t)
+function lerpCol(h1, h2, t) {
+  const p = s => parseInt(s, 16);
+  const r = Math.round(lerp(p(h1.slice(1,3)), p(h2.slice(1,3)), t));
+  const g = Math.round(lerp(p(h1.slice(3,5)), p(h2.slice(3,5)), t));
+  const b = Math.round(lerp(p(h1.slice(5,7)), p(h2.slice(5,7)), t));
+  return `rgb(${r},${g},${b})`;
+}
+
+// ── INPUT VARIABLE READER ─────────────────────────────────────────────────────
+// Reads all five right-panel input fields and returns them as a typed object.
+// Called inside compute() on every update so inputs are always live.
+// If a field is empty or invalid, falls back to the default value.
+function getInputs() {
+  return {
+    gdpPot:       parseFloat(document.getElementById('in-gdp').value)    || 120,    // R bn — GDP ceiling
+    invIdeal:     parseFloat(document.getElementById('in-inv').value)    || 22,     // R bn — investment at best case
+    jobsPot:      parseFloat(document.getElementById('in-jobs').value)   * 1000 || 120000, // Convert 000s to units
+    maxGrowth:    parseFloat(document.getElementById('in-growth').value) || 7,     // % — growth at best case
+    floorDecline: parseFloat(document.getElementById('in-floor').value)  || 2.5,   // % — contraction at worst case
+  };
+}
+
+// ── CORE CALCULATION ENGINE ───────────────────────────────────────────────────
+// compute(v) — takes the five lever values and returns all economic outputs.
+// This is the single source of truth for every number displayed in the simulation.
+// All KPI values, the city health fraction, and the derived panel come from here.
+//
+// INPUT:  v = { p, m, po, c, sk }  — lever values 1–10 each
+// OUTPUT: object with score, gdp, growth, invDelta, jobs, 10yr projections
+function compute(v) {
+  const inp = getInputs(); // Live input variable values from right panel
+
+  // ── FORMULA 1: HEALTH SCORE ──────────────────────────────────────────────
+  // Weighted average of the five levers, scaled to 0–100.
+  // Weights reflect relative economic importance of each factor:
+  //   Power reliability    0.26  (highest — everything depends on power)
+  //   Port efficiency      0.22  (second — NMB is an export/import city)
+  //   Municipal services   0.20  (third — baseline business cost)
+  //   Safety and crime     0.18  (fourth — talent retention and investment confidence)
+  //   Skills/employment    0.14  (fifth — pipeline takes longest to fix)
+  // Weights sum to exactly 1.00.
+  // score = ROUND( (p×0.26 + m×0.20 + po×0.22 + c×0.18 + sk×0.14) / 10 × 100 )
+  const score = Math.round(((v.p*0.26 + v.m*0.20 + v.po*0.22 + v.c*0.18 + v.sk*0.14) / 10) * 100);
+  const pct = score / 100; // score as a 0.0–1.0 fraction — used in all other formulas
+
+  // ── FORMULA 2: GDP CONTRIBUTION ─────────────────────────────────────────
+  // The city never starts at zero GDP — it has a suppressed baseline (35% of potential).
+  // From that floor, GDP scales upward as score improves, reaching ~85% of potential at score 100.
+  // The 0.85 cap reflects real-world friction — no city ever fully realises its theoretical potential.
+  //
+  // baseGDP   = gdpPot × 0.35
+  // gdp       = ROUND( baseGDP + (gdpPot − baseGDP) × score% × 0.85 )
+  //
+  // CHANGES WITH: gdpPot input field (raises/lowers ceiling and floor), health score (lever sliders)
+  const baseGDP = inp.gdpPot * 0.35;
+  const gdp = Math.round(baseGDP + (inp.gdpPot - baseGDP) * pct * 0.85);
+
+  // ── FORMULA 3: ANNUAL GROWTH RATE ───────────────────────────────────────
+  // Linear scale from −floorDecline% (worst case) to +maxGrowth% (best case).
+  // At score = 0:   growth = −floorDecline
+  // At score = 0.5: growth = (−floorDecline + 0.5 × (floorDecline + maxGrowth)) ≈ near 0
+  // At score = 1.0: growth = maxGrowth
+  //
+  // growth = −floorDecline + score% × (floorDecline + maxGrowth)
+  //
+  // CHANGES WITH: maxGrowth input, floorDecline input, health score
+  const growth = parseFloat((-inp.floorDecline + pct * (inp.floorDecline + inp.maxGrowth)).toFixed(1));
+
+  // ── FORMULA 4: INVESTMENT DELTA ─────────────────────────────────────────
+  // Shows how much investment is flowing IN (+) or OUT (−) relative to ideal.
+  // Neutral point is score = 50% (neither attracting nor losing net investment).
+  // Above 50%: positive delta = investment coming in (green particles appear)
+  // Below 50%: negative delta = investment leaving (red particles fly out)
+  // At exactly 50%: invDelta ≈ 0, no particles spawn
+  //
+  // invDelta = (score% − 0.50) × invIdeal × 2
+  //
+  // CHANGES WITH: invIdeal input field, health score
+  const neutralPoint = 0.5;
+  const invDelta = parseFloat(((pct - neutralPoint) * inp.invIdeal * 2).toFixed(1));
+
+  // ── FORMULA 5: JOBS UNREALISED ──────────────────────────────────────────
+  // The number of jobs that should exist at full economic capacity but currently don't.
+  // At score 100%: 0 jobs unrealised.
+  // At score 0%:   all jobsPot jobs are unrealised.
+  // Rounded to nearest 1 000 for clean display.
+  //
+  // jobsUnrealised = ROUND( (1 − score%) × jobsPotential / 1000 ) × 1000
+  //
+  // CHANGES WITH: full employment potential input, health score
+  const jobs = Math.round((1 - pct) * inp.jobsPot / 1000) * 1000;
+
+  // ── FORMULA 6: 10-YEAR GDP PROJECTION (CURRENT PATH) ────────────────────
+  // Compounds current GDP at current growth rate for 10 years.
+  // If growth is negative this number will be LOWER than current GDP.
+  //
+  // gdp10curr = ROUND( gdp × (1 + growth/100)^10 )
+  //
+  // CHANGES WITH: all lever sliders (via gdp and growth), gdpPot, maxGrowth, floorDecline inputs
+  const gdp10curr = Math.round(gdp * Math.pow(1 + growth/100, 10));
+
+  // ── FORMULA 7: 10-YEAR GDP PROJECTION (IF REFORM STARTS TODAY) ──────────
+  // Shows what happens if the city starts reforming NOW from the suppressed baseline.
+  // Uses 75% of max growth rate as a realistic reform trajectory (not the absolute best case).
+  // Always starts from baseGDP (the current suppressed floor), not from current gdp.
+  // This answers the question: "what is the 10yr value of starting reform today?"
+  //
+  // refGrowth = maxGrowth × 0.75
+  // gdp10ref  = ROUND( baseGDP × (1 + refGrowth/100)^10 )
+  //
+  // CHANGES WITH: gdpPot input (via baseGDP), maxGrowth input
+  const refGrowth = inp.maxGrowth * 0.75;
+  const gdp10ref = Math.round(baseGDP * Math.pow(1 + refGrowth/100, 10));
+
+  // Return all computed values plus the input variables used (for KPI sub-labels)
+  return { score, gdp, growth, invDelta, jobs,
+           gdpPot: inp.gdpPot, invIdeal: inp.invIdeal, jobsPot: inp.jobsPot,
+           gdp10curr, gdp10ref };
+}
+
+// ── LEVER VALUE READER ────────────────────────────────────────────────────────
+// Returns current slider values as an object — called on every update.
+function getVals() {
+  return { p:+SL.p.value, m:+SL.m.value, po:+SL.po.value, c:+SL.c.value, sk:+SL.sk.value };
+}
+
+// ── KPI ANIMATION ─────────────────────────────────────────────────────────────
+// animKPI — updates a KPI card with a new value and colour, plays a brief pulse animation.
+// id    = the element id of the value text (e.g. 'kv-gdp')
+// shId  = the element id of the background shine overlay
+// txt   = the new text to display
+// col   = the colour to apply (green/amber/red based on value)
+function animKPI(id, shId, txt, col) {
+  const el = document.getElementById(id);
+  const sh = document.getElementById(shId);
+  el.style.color = col;
+  el.textContent = txt;
+  el.classList.remove('pulse'); void el.offsetWidth; // Force reflow to restart animation
+  el.classList.add('pulse');
+  sh.style.background = col;
+  sh.style.opacity = '0.18';
+  setTimeout(() => { sh.style.opacity = '0'; }, 600);
+}
+
+// ── CITY CANVAS SETUP ─────────────────────────────────────────────────────────
+// The canvas element fills the entire middle column between the two side panels.
+const canvas = document.getElementById('cityCanvas');
+const ctx    = canvas.getContext('2d');
+
+// ── BUILDING DEFINITIONS ──────────────────────────────────────────────────────
+// Each building object defines its visual properties.
+// LAYER:  0 = far background (drawn first, smallest, 55% scale)
+//         1 = mid-ground (drawn second, medium, 80% scale)
+//         Road and cars are drawn AFTER all buildings so they appear in front.
+// x:      horizontal position as fraction of canvas width (0.0–1.0)
+// w:      width as fraction of canvas width
+// minH:   minimum height as fraction of canvas height at health score = 0
+// fullH:  maximum height as fraction of canvas height at health score = 1
+//         FORMULA: buildingHeight = lerp(minH × H × scale, fullH × H × scale, healthFraction)
+// floors: number of floors — determines window grid row count
+// col0:   building colour at health score = 0 (derelict / dark)
+// col1:   building colour at health score = 1 (thriving / lit)
+//         FORMULA: colour = lerpCol(col0, col1, healthFraction)
+const BLDGS = [
+  // Background buildings — smaller, behind mid buildings
+  {layer:0, x:.03, w:.07, minH:.10, fullH:.28, floors:3, col0:'#3C3434', col1:'#185FA5'},
+  {layer:0, x:.12, w:.09, minH:.08, fullH:.22, floors:2, col0:'#3C3434', col1:'#0C447C'},
+  {layer:0, x:.23, w:.12, minH:.12, fullH:.38, floors:5, col0:'#2C2424', col1:'#185FA5'},
+  {layer:0, x:.38, w:.08, minH:.09, fullH:.26, floors:3, col0:'#3C3434', col1:'#0C447C'},
+  {layer:0, x:.48, w:.13, minH:.13, fullH:.42, floors:6, col0:'#2C2424', col1:'#185FA5'},
+  {layer:0, x:.64, w:.09, minH:.10, fullH:.30, floors:4, col0:'#3C3434', col1:'#0C447C'},
+  {layer:0, x:.75, w:.07, minH:.08, fullH:.22, floors:3, col0:'#3C3434', col1:'#185FA5'},
+  {layer:0, x:.84, w:.11, minH:.12, fullH:.36, floors:5, col0:'#2C2424', col1:'#0C447C'},
+  {layer:0, x:.96, w:.04, minH:.09, fullH:.28, floors:4, col0:'#3C3434', col1:'#185FA5'},
+  // Mid-ground buildings — larger, closer, drawn in front of background layer
+  {layer:1, x:.01, w:.08, minH:.12, fullH:.40, floors:5, col0:'#5C2020', col1:'#1D9E75'},
+  {layer:1, x:.10, w:.06, minH:.10, fullH:.30, floors:3, col0:'#6B3C10', col1:'#639922'},
+  {layer:1, x:.17, w:.09, minH:.15, fullH:.52, floors:7, col0:'#333',    col1:'#185FA5'},
+  {layer:1, x:.27, w:.07, minH:.11, fullH:.34, floors:4, col0:'#444',    col1:'#0C447C'},
+  {layer:1, x:.35, w:.11, minH:.18, fullH:.65, floors:9, col0:'#222',    col1:'#0C447C'},
+  {layer:1, x:.47, w:.07, minH:.12, fullH:.38, floors:5, col0:'#5C2020', col1:'#1D9E75'},
+  {layer:1, x:.55, w:.08, minH:.10, fullH:.28, floors:3, col0:'#6B3C10', col1:'#3B6D11'},
+  {layer:1, x:.64, w:.10, minH:.16, fullH:.56, floors:8, col0:'#222',    col1:'#0C447C'},
+  {layer:1, x:.75, w:.07, minH:.11, fullH:.34, floors:4, col0:'#444',    col1:'#185FA5'},
+  {layer:1, x:.83, w:.06, minH:.09, fullH:.26, floors:3, col0:'#6B3C10', col1:'#639922'},
+  {layer:1, x:.90, w:.09, minH:.14, fullH:.44, floors:6, col0:'#222',    col1:'#185FA5'},
+];
+
+// ── WINDOW LIGHTING SYSTEM ────────────────────────────────────────────────────
+// Windows are pre-baked (randomised once per health band) to prevent per-frame flickering.
+// LIT_FRACS: fraction of windows that are lit at each of the four health bands.
+//   Band 0 (score <25%):  12% of windows lit — mostly dark, few signs of life
+//   Band 1 (score 25–44%): 32% lit — some activity
+//   Band 2 (score 45–64%): 60% lit — city is active
+//   Band 3 (score 65%+):  88% lit — thriving, almost all windows occupied
+const LIT_FRACS = [.12, .32, .60, .88];
+
+// getWinBand — maps health fraction to a band index 0–3
+function getWinBand(hf) { return hf >= .65 ? 3 : hf >= .45 ? 2 : hf >= .25 ? 1 : 0; }
+
+// bakeWindows — regenerates the random window lit/dark states for all buildings.
+// Only runs when the health band changes (not every frame) to eliminate flickering.
+// Each building gets a 2D array: b.wins[floor][windowColumn] = true/false (lit/dark)
+function bakeWindows(hf) {
+  const band = getWinBand(hf);
+  if (band === lastWindowBand) return; // Skip if band hasn't changed
+  lastWindowBand = band;
+  const frac = LIT_FRACS[band];
+  BLDGS.forEach(b => {
+    b.wins = [];
+    for (let f = 0; f < 14; f++) {
+      b.wins[f] = [];
+      for (let w = 0; w < 16; w++) b.wins[f][w] = Math.random() < frac;
+    }
+  });
+}
+
+// ── CAR SYSTEM ────────────────────────────────────────────────────────────────
+// Cars are drawn ON TOP of all buildings (after the road is drawn).
+// Number of cars scales with health: 1 car at worst, 14 at best.
+// FORMULA: numCars = ROUND( lerp(1, 14, healthFraction) )
+const CARS = [];
+function initCars(W, roadY, roadH, hf) {
+  CARS.length = 0;
+  const n = Math.max(1, Math.round(lerp(1, 14, hf)));
+  const cols = ['#E24B4A','#185FA5','#3B6D11','#FAC775','#888780','#993C1D','#0C447C','#fff'];
+  for (let i = 0; i < n; i++) {
+    CARS.push({
+      x:     Math.random() * W,
+      lane:  Math.random() > .5 ? 0 : 1,           // Lane 0 = near lane, Lane 1 = far lane
+      w:     26 + Math.random() * 14,               // Random car width (26–40px)
+      h:     11 + Math.random() * 5,                // Random car height (11–16px)
+      speed: (1.2 + Math.random() * 2.8) * (Math.random() > .5 ? 1 : -1), // Random direction and speed
+      col:   cols[Math.floor(Math.random() * cols.length)]
+    });
+  }
+}
+
+// drawCar — renders a single car with body, windows, and wheels
+function drawCar(x, y, w, h, col) {
+  ctx.fillStyle = col;
+  ctx.beginPath(); ctx.roundRect(x, y, w, h, 3); ctx.fill();
+  ctx.fillStyle = 'rgba(180,225,255,.65)';
+  ctx.fillRect(x+w*.1, y+h*.1, w*.3, h*.55);
+  ctx.fillRect(x+w*.52, y+h*.1, w*.3, h*.55);
+  ctx.fillStyle = '#1a1a1a';
+  ctx.beginPath(); ctx.arc(x+w*.22, y+h+1, h*.5, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x+w*.78, y+h+1, h*.5, 0, Math.PI*2); ctx.fill();
+}
+
+// drawTree — renders a simple lollipop tree, only visible when hf > 0.3
+// Trees fade in above health score 30% and get darker green as health improves
+function drawTree(x, baseY, size, hf) {
+  if (hf < .3) return;
+  const a = Math.min(1, (hf-.3)*2.5); ctx.globalAlpha = a;
+  const green = lerpCol('#3B6D11','#27500A', hf*.6); ctx.fillStyle = green;
+  ctx.beginPath(); ctx.arc(x, baseY-size*.7, size*.5, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x-size*.35, baseY-size*.4, size*.35, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x+size*.35, baseY-size*.4, size*.35, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#27500A';
+  ctx.fillRect(x-size*.07, baseY-size*.15, size*.14, size*.2);
+  ctx.globalAlpha = 1;
+}
+
+// drawCrane — renders a port crane, only visible when hf > 0.15
+// Fades from grey (derelict, hf=0.15) to blue (active, hf=1.0)
+function drawCrane(x, y, size, hf) {
+  if (hf < .15) return;
+  const a = Math.min(1, (hf-.15)*2); ctx.globalAlpha = a;
+  ctx.strokeStyle = lerpCol('#888780','#378ADD', hf);
+  ctx.lineWidth = Math.max(1.5, size*.035);
+  ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x,y-size); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x-size*.15, y-size*.88); ctx.lineTo(x+size*.65, y-size*.88); ctx.stroke();
+  ctx.lineWidth = Math.max(.8, size*.015);
+  [.12,.28,.44].forEach(ox => {
+    ctx.beginPath();
+    ctx.moveTo(x+size*ox, y-size*.88);
+    ctx.lineTo(x+size*(ox-.06), y-size*.1);
+    ctx.stroke();
+  });
+  ctx.globalAlpha = 1;
+}
+
+// ── INVESTMENT PARTICLE SYSTEM ────────────────────────────────────────────────
+// Particles are R-coin icons that fly IN (green) or OUT (red) based on invDelta.
+// They are drawn LAST so they appear on top of everything including buildings and road.
+const PARTS = [];
+let lastInvDelta = 0;
+
+// spawnParticle — creates a single new particle.
+// If invDelta > +0.5 (investment flowing in):  green coin flies from screen edge TOWARD city
+// If invDelta < −0.5 (investment leaving):     red coin flies FROM city TOWARD screen edge
+// If −0.5 < invDelta < +0.5 (neutral):         no particle spawned
+function spawnParticle(W, H, invDelta, invIdeal) {
+  const isIn  = invDelta >  0.5;
+  const isOut = invDelta < -0.5;
+  if (!isIn && !isOut) return; // Neutral zone — no particles
+
+  if (isIn) {
+    // Spawn from random screen edge (left, right, or top)
+    const side = Math.random();
+    let x, y;
+    if (side < .33) { x = -30; y = H*(.2 + Math.random()*.5); }
+    else if (side < .66) { x = W+30; y = H*(.2 + Math.random()*.5); }
+    else { x = W*Math.random(); y = -30; }
+    // Target: random point on the city (middle vertical band)
+    const tx = W*(.15 + Math.random()*.7);
+    const ty = H*(.45 + Math.random()*.2);
+    // Value label scales with investment ratio
+    // FORMULA: val = (invDelta / invIdeal) × invIdeal × random(0.3–1.0)
+    const ratio = invDelta / invIdeal;
+    const val = Math.round(ratio * invIdeal * (.3 + Math.random()*.7) * 1000) / 1000;
+    const valStr = val >= 1 ? `R${val.toFixed(0)}bn` : `R${Math.round(val*1000)}m`;
+    PARTS.push({
+      x, y, tx, ty, startX:x, startY:y,
+      age:0, maxAge:85+Math.random()*35,
+      size: 7+ratio*8, // Larger coin = bigger investment
+      alpha:0, type:'in', color:'#1D9E75', valStr
+    });
+  } else {
+    // Spawn from random point on city, fly toward screen edge
+    const sx = W*(.1 + Math.random()*.8);
+    const sy = H*(.4 + Math.random()*.2);
+    const side = Math.random();
+    let tx, ty;
+    if (side < .5) { tx = Math.random()>.5 ? -60 : W+60; ty = H*Math.random(); }
+    else { tx = W*Math.random(); ty = -60; }
+    PARTS.push({
+      x:sx, y:sy, tx, ty, startX:sx, startY:sy,
+      age:0, maxAge:65+Math.random()*25,
+      size:6, alpha:0, type:'out', color:'#E24B4A', valStr:''
+    });
+  }
+}
+
+// drawRIcon — draws the R-coin icon at position (x,y)
+// size determines radius; valStr shows the rand value label above the coin
+function drawRIcon(x, y, size, color, alpha, valStr) {
+  ctx.globalAlpha = alpha;
+  ctx.beginPath(); ctx.arc(x,y,size,0,Math.PI*2); ctx.fillStyle=color; ctx.fill();
+  ctx.fillStyle='#fff';
+  ctx.font = `bold ${Math.round(size*1.1)}px Arial`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('R', x, y+1);
+  if (valStr) {
+    ctx.font = `bold ${Math.round(size*.72)}px Arial`;
+    ctx.fillStyle = color;
+    ctx.fillText(valStr, x, y-size-5);
+  }
+  ctx.globalAlpha = 1;
+}
+
+// updateParticles — spawns new particles and animates existing ones each frame.
+// Spawn chance scales with investment magnitude:
+//   |invDelta/invIdeal| > 0.8 → 18% chance per frame
+//   |invDelta/invIdeal| > 0.5 → 11% chance per frame
+//   |invDelta/invIdeal| > 0.2 →  6% chance per frame
+//   Below threshold            →  0% (no particles)
+function updateParticles(W, H, invDelta, invIdeal, ts) {
+  const mag = Math.abs(invDelta) / invIdeal;
+  const spawnChance = mag>.8 ? .18 : mag>.5 ? .11 : mag>.2 ? .06 : 0;
+  if (Math.random() < spawnChance) spawnParticle(W, H, invDelta, invIdeal);
+
+  // Animate each particle — move along its trajectory and fade in/out
+  for (let i = PARTS.length-1; i >= 0; i--) {
+    const p = PARTS[i]; p.age++;
+    const t  = p.age / p.maxAge;
+    const et = easeInOut(t); // Ease the movement (slow start, slow end)
+    // FORMULA: position = startPos + (target - startPos) × easedProgress
+    p.x = p.startX + (p.tx - p.startX) * et;
+    p.y = p.startY + (p.ty - p.startY) * et;
+    // Fade in for first 15% of lifetime, full opacity until 75%, then fade out
+    p.alpha = t < .15 ? t/.15 : t > .75 ? 1-(t-.75)/.25 : 1;
+    // Draw dashed trail line from origin to current position
+    ctx.globalAlpha = p.alpha * .3;
+    ctx.strokeStyle = p.color; ctx.lineWidth = 1.2; ctx.setLineDash([4,5]);
+    ctx.beginPath(); ctx.moveTo(p.startX, p.startY); ctx.lineTo(p.x, p.y); ctx.stroke();
+    ctx.setLineDash([]); ctx.globalAlpha = 1;
+    // Draw the coin icon — show value label during first 55% of lifetime
+    drawRIcon(p.x, p.y, p.size, p.color, p.alpha*.9, t < .55 ? p.valStr : null);
+    if (p.age >= p.maxAge) PARTS.splice(i, 1); // Remove expired particle
+  }
+}
+
+// ── MAIN CITY RENDER FUNCTION ─────────────────────────────────────────────────
+// drawFrame(W, H, hf, ts) — called every animation frame.
+// W, H:  canvas dimensions in pixels
+// hf:    health fraction 0.0–1.0 (= currentScore / 100) — drives ALL visual changes
+// ts:    timestamp from requestAnimationFrame — used for slow sun rotation
+//
+// Draw order (back to front — later = in front):
+//   1. Sky gradient
+//   2. Sun and rays
+//   3. Clouds
+//   4. Background hills
+//   5. Ground base
+//   6. Port water
+//   7. Background buildings (layer 0)
+//   8. Background trees
+//   9. Mid-ground buildings (layer 1)
+//  10. Mid-ground trees
+//  11. Port cranes
+//  12. Road (IN FRONT of all buildings)
+//  13. Cars (IN FRONT of road and buildings)
+//  14. Pavement and foreground grass
+//  15. Pollution haze overlay (low health only)
+//  16. Investment particles (topmost layer)
+//  17. Status badge (text overlay)
+let _invDelta = 0, _invIdeal = 22; // Cached from last compute() call, used by drawFrame
+function drawFrame(W, H, hf, ts) {
+  ctx.clearRect(0, 0, W, H);
+  bakeWindows(hf); // Refresh window states if health band changed
+
+  // 1. Sky gradient — dark red at worst, deep blue at best
+  const sg = ctx.createLinearGradient(0, 0, 0, H*.65);
+  sg.addColorStop(0, lerpCol('#6B1515','#0D3B6E', hf)); // Top of sky
+  sg.addColorStop(1, lerpCol('#D4A0A0','#B5D4F4', hf)); // Horizon
+  ctx.fillStyle = sg; ctx.fillRect(0, 0, W, H);
+
+  // 2. Sun — appears above health 25%, grows and brightens toward best case
+  // Rays appear above health 55%
+  if (hf > .25) {
+    const sa = Math.min(1, (hf-.25)*2); ctx.globalAlpha = sa;
+    ctx.beginPath(); ctx.arc(W*.84, H*.13, 18+hf*14, 0, Math.PI*2);
+    ctx.fillStyle = lerpCol('#F09595','#FAC775', hf); ctx.fill();
+    if (hf > .55) {
+      ctx.strokeStyle = 'rgba(250,199,117,0.2)'; ctx.lineWidth = 2;
+      for (let r=0; r<8; r++) {
+        // Rays rotate slowly using timestamp — ang = r×45° + ts×0.0003 radians
+        const ang = r*Math.PI/4 + (ts*.0003);
+        const r1=22+hf*14, r2=36+hf*22;
+        ctx.beginPath();
+        ctx.moveTo(W*.84+Math.cos(ang)*r1, H*.13+Math.sin(ang)*r1);
+        ctx.lineTo(W*.84+Math.cos(ang)*r2, H*.13+Math.sin(ang)*r2);
+        ctx.stroke();
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // 3. Clouds — appear above health 40%, fade in proportionally
+  if (hf > .4) {
+    const ca = Math.min(.85, (hf-.4)*2.5); ctx.globalAlpha = ca;
+    [[.1,.1,45],[.32,.07,35],[.58,.12,42],[.76,.08,30]].forEach(([cx,cy,r]) => {
+      ctx.fillStyle = 'rgba(255,255,255,.8)';
+      ctx.beginPath(); ctx.arc(W*cx,H*cy,r,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(W*cx+r*.65,H*cy+r*.12,r*.7,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(W*cx-r*.5,H*cy+r*.18,r*.62,0,Math.PI*2); ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+  }
+
+  // 4. Background hills — dark red at worst, dark green at best
+  ctx.fillStyle = lerpCol('#5C1515','#2C5F2D', hf);
+  ctx.beginPath(); ctx.moveTo(0,H*.58);
+  ctx.bezierCurveTo(W*.2,H*.38, W*.4,H*.52, W*.55,H*.42);
+  ctx.bezierCurveTo(W*.7,H*.32, W*.85,H*.48, W,H*.44);
+  ctx.lineTo(W,H); ctx.lineTo(0,H); ctx.closePath(); ctx.fill();
+
+  // 5. Ground base
+  const groundY = H*.7;
+  ctx.fillStyle = lerpCol('#6B1515','#639922', hf);
+  ctx.fillRect(0, groundY, W, H-groundY);
+
+  // 6. Port water (right side) — fades in above health 10%
+  if (hf > .1) {
+    const wa = Math.min(1,(hf-.1)*2); ctx.globalAlpha = wa;
+    ctx.fillStyle = lerpCol('#444','#185FA5', hf);
+    ctx.fillRect(W*.72, H*.56, W*.28, H*.14);
+    if (hf > .5) { // Water shimmer appears at higher health
+      ctx.strokeStyle='rgba(181,212,244,.35)'; ctx.lineWidth=1;
+      for (let i=0; i<5; i++) {
+        ctx.beginPath();
+        ctx.moveTo(W*(.73+i*.04), H*.63);
+        ctx.quadraticCurveTo(W*(.75+i*.04),H*.61, W*(.77+i*.04),H*.63);
+        ctx.stroke();
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // 7. Background buildings (layer 0) — 55% scale, 75% opacity (depth effect)
+  const bgBase = H*.66; // Baseline Y for background layer
+  BLDGS.filter(b => b.layer===0).forEach(b => {
+    const bW  = b.w*W*.55;
+    // FORMULA: buildingHeight = lerp(minH×H×0.55, fullH×H×0.55, healthFraction)
+    const bH  = lerp(b.minH*H*.55, b.fullH*H*.55, hf);
+    const bX  = b.x*W;
+    const bY  = bgBase - bH;
+    const col = lerpCol(b.col0, b.col1, hf);
+    ctx.globalAlpha = .75;
+    ctx.fillStyle = col; ctx.fillRect(bX, bY, bW, bH);
+    // Windows — use pre-baked states to prevent flickering
+    const cols = Math.max(1, Math.floor(bW/9));
+    const flH  = bH / b.floors;
+    const wCol = lerpCol('#555','#FAC775', hf); // Window colour: dark grey → warm yellow
+    for (let f=0; f<b.floors; f++) {
+      for (let w=0; w<cols; w++) {
+        ctx.fillStyle = (b.wins && b.wins[f] && b.wins[f][w]) ? wCol : 'rgba(0,0,0,.4)';
+        ctx.fillRect(bX+2+w*(bW-4)/cols, bY+2+f*flH, Math.max(1,(bW-4)/cols-2), Math.max(1,flH-3));
+      }
+    }
+    ctx.globalAlpha = 1;
+  });
+
+  // 8. Background trees (behind mid buildings)
+  if (hf > .3) [.09,.21,.46,.58,.70,.88].forEach(tx => drawTree(tx*W, bgBase, 14, hf));
+
+  // 9. Mid-ground buildings (layer 1) — 80% scale, full opacity
+  const midBase = H*.76; // Baseline Y for mid layer
+  BLDGS.filter(b => b.layer===1).forEach(b => {
+    const bW  = b.w*W*.8;
+    // FORMULA: buildingHeight = lerp(minH×H×0.80, fullH×H×0.80, healthFraction)
+    const bH  = lerp(b.minH*H*.8, b.fullH*H*.8, hf);
+    const bX  = b.x*W;
+    const bY  = midBase - bH;
+    const col = lerpCol(b.col0, b.col1, hf);
+    ctx.fillStyle = col; ctx.fillRect(bX, bY, bW, bH);
+    // Tower spire and blinking light for tall buildings (7+ floors) above health 40%
+    if (b.floors>=7 && bH>50) {
+      ctx.fillStyle=col; ctx.fillRect(bX+bW*.38, bY-9, bW*.14, 9);
+      if (hf>.4) { ctx.beginPath(); ctx.arc(bX+bW*.45,bY-10,3,0,Math.PI*2); ctx.fillStyle='#E24B4A'; ctx.fill(); }
+    }
+    // Windows
+    const cols = Math.max(1, Math.floor(bW/10));
+    const flH  = bH / b.floors;
+    const wCol = lerpCol('#666','#FAC775', hf);
+    for (let f=0; f<b.floors; f++) {
+      for (let w=0; w<cols; w++) {
+        ctx.fillStyle = (b.wins && b.wins[f] && b.wins[f][w]) ? wCol : 'rgba(0,0,0,.4)';
+        ctx.fillRect(bX+2+w*(bW-4)/cols, bY+3+f*flH, Math.max(1.5,(bW-4)/cols-2), Math.max(1.5,flH-4));
+      }
+    }
+    // Smoke from derelict residential/commercial buildings at low health
+    if (hf<.4 && (b.col0==='#6B3C10'||b.col0==='#5C2020')) {
+      const si = (.4-hf)*1.5;
+      for (let s=0; s<3; s++) {
+        ctx.beginPath(); ctx.arc(bX+bW*.5, bY-(s*12), 5+s*4, 0, Math.PI*2);
+        ctx.fillStyle = `rgba(90,85,80,${(.25-s*.07)*si})`; ctx.fill();
+      }
+    }
+  });
+
+  // 10. Mid trees (in front of mid buildings, behind road)
+  [.06,.18,.31,.44,.57,.68,.80,.93].forEach(tx => drawTree(tx*W, midBase, 18, hf));
+
+  // 11. Port cranes (behind road but in mid-ground scene)
+  [.78,.86,.93].forEach((cx,i) => drawCrane(W*cx, H*.68, 44+i*8, hf));
+
+  // 12. Road — drawn AFTER all buildings so it appears in front of everything
+  const roadY = midBase;
+  const roadH = H*.082;
+  ctx.fillStyle = lerpCol('#2a2a2a','#4a4a4a', hf*.5); // Road surface
+  ctx.fillRect(0, roadY, W, roadH);
+  ctx.fillStyle = lerpCol('#555','#C8C4BC', hf); // Kerb / pavement edge
+  ctx.fillRect(0, roadY+roadH, W, H*.022);
+  if (hf > .25) { // Lane markings — appear above health 25%
+    const la = Math.min(1,(hf-.25)*2.5); ctx.globalAlpha = la;
+    ctx.strokeStyle='#FAC775'; ctx.lineWidth=2; ctx.setLineDash([16,12]);
+    ctx.beginPath(); ctx.moveTo(0,roadY+roadH*.5); ctx.lineTo(W,roadY+roadH*.5); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.strokeStyle='rgba(255,255,255,.5)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(0,roadY+2); ctx.lineTo(W,roadY+2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,roadY+roadH-2); ctx.lineTo(W,roadY+roadH-2); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // 13. Cars — drawn AFTER road so they sit on top of it
+  // Re-initialise car pool when health changes by more than 7 points (adds/removes cars)
+  if (Math.abs(currentScore-carInitScore) > 7) { initCars(W,roadY,roadH,hf); carInitScore=currentScore; }
+  const lane0Y = roadY+roadH*.12; // Near lane Y position
+  const lane1Y = roadY+roadH*.56; // Far lane Y position
+  CARS.forEach(car => {
+    car.x += car.speed * (hf>.15 ? 1 : .15); // Slow cars right down at very low health
+    if (car.x >  W+50) car.x = -50;
+    if (car.x < -50)   car.x = W+50;
+    drawCar(car.x, car.lane===0 ? lane0Y : lane1Y, car.w, car.h, car.col);
+  });
+
+  // 14. Pavement and foreground grass strip
+  ctx.fillStyle = lerpCol('#3a3a3a','#B8B4AC', hf);
+  ctx.fillRect(0, roadY+roadH+H*.022, W, H*.018);
+  ctx.fillStyle = lerpCol('#5C1515','#4a8a20', hf);
+  ctx.fillRect(0, roadY+roadH+H*.04, W, H-roadY-roadH-H*.04);
+
+  // 15. Pollution haze — semi-transparent brownish overlay at low health (< 45%)
+  // FORMULA: hazeAlpha = (0.45 − hf) × 0.7  (maximum haze at hf=0, zero at hf=0.45)
+  if (hf < .45) {
+    ctx.fillStyle = `rgba(130,110,90,${(.45-hf)*.7})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // 16. Investment particles — drawn last so they float above everything
+  updateParticles(W, H, _invDelta, _invIdeal, ts);
+
+  // 17. Status badge — small label in top-right corner of canvas
+  const statusLabels = [[0,'Crisis','#E24B4A'],[25,'Struggling','#E24B4A'],[40,'Recovering','#BA7517'],[60,'Growing','#639922'],[80,'Thriving','#1D9E75']];
+  let lbl='', lcol='#888780';
+  for (const [th,l,c] of statusLabels) { if (hf*100>=th) { lbl=l; lcol=c; } }
+  ctx.font = 'bold 13px -apple-system,BlinkMacSystemFont,Arial,sans-serif';
+  ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  const tw = ctx.measureText(lbl).width;
+  ctx.fillStyle='rgba(0,0,0,.5)'; ctx.beginPath(); ctx.roundRect(W-tw-28,12,tw+20,28,6); ctx.fill();
+  ctx.fillStyle=lcol; ctx.fillText(lbl, W-tw-18, 30);
+
+  // ── LOGO — drawn in bottom-right corner of the canvas ────────────────────
+  // The logo image is embedded as base64 so no external file is needed.
+  // It is drawn every frame on top of everything (topmost layer after particles).
+  if (window._logoImg && window._logoImg.complete) {
+    const logoH = Math.round(H * 0.13); // Logo height = 13% of canvas height
+    const logoW = Math.round(logoH * window._logoImg.naturalWidth / window._logoImg.naturalHeight);
+    const logoX = W - logoW - 12;       // 12px from right edge
+    const logoY = H - logoH - 10;       // 10px from bottom edge
+    ctx.globalAlpha = 0.92;
+    ctx.drawImage(window._logoImg, logoX, logoY, logoW, logoH);
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ── ANIMATION LOOP ────────────────────────────────────────────────────────────
+// startLoop() — begins or restarts the canvas animation.
+// Phase 1 (tick): smoothly interpolates currentScore from its old value to targetScore over 900ms
+// Phase 2 (idle): once targetScore is reached, keeps rendering continuously (for cars, particles, sun rays)
+function startLoop() {
+  if (animFrame) cancelAnimationFrame(animFrame);
+  let start=null, from=currentScore, to=targetScore;
+
+  function tick(ts) {
+    if (!start) start=ts;
+    const t = Math.min((ts-start)/900, 1); // 0.0 → 1.0 over 900 milliseconds
+    currentScore = lerp(from, to, easeInOut(t)); // Smooth interpolation to new score
+    const W = canvas.parentElement.clientWidth||900;
+    const H = canvas.parentElement.clientHeight||400;
+    if (canvas.width!==W||canvas.height!==H) { canvas.width=W; canvas.height=H; carInitScore=-1; }
+    drawFrame(W, H, currentScore/100, ts);
+    animFrame = requestAnimationFrame(t<1 ? tick : idle);
+    if (t>=1) currentScore=to;
+  }
+
+  function idle(ts) {
+    // Continuous render — needed for animated elements (cars, sun rays, particles)
+    const W = canvas.parentElement.clientWidth||900;
+    const H = canvas.parentElement.clientHeight||400;
+    if (canvas.width!==W||canvas.height!==H) { canvas.width=W; canvas.height=H; carInitScore=-1; }
+    drawFrame(W, H, currentScore/100, ts);
+    animFrame = requestAnimationFrame(idle);
+  }
+
+  animFrame = requestAnimationFrame(tick);
+}
+
+// ── MASTER UPDATE FUNCTION ────────────────────────────────────────────────────
+// update() — called every time ANY lever slider OR input field changes.
+// This is the central hub that:
+//   1. Reads all lever values
+//   2. Calls compute() to get all economic outputs
+//   3. Updates every KPI card, label, and derived output in the UI
+//   4. Caches invDelta and invIdeal for the particle system
+//   5. Sets targetScore and restarts the animation loop
+function update() {
+  const v = getVals(); // Read current lever positions
+
+  // Update lever value labels and their colours (e.g. "2/10" in red)
+  Object.keys(SL).forEach(k => {
+    const val = +SL[k].value;
+    VL[k].textContent = val + '/10';
+    VL[k].style.color = lCol(val);
+  });
+
+  const c = compute(v); // Run all formulas — returns score, gdp, growth, invDelta, jobs etc.
+
+  // Cache investment values for the particle system (drawFrame uses these each frame)
+  _invDelta = c.invDelta;
+  _invIdeal = c.invIdeal;
+
+  // ── Update KPI Card 1: GDP contribution ──────────────────────────────────
+  // Colour: green (score≥65), yellow-green (45–64), amber (30–44), red (<30)
+  animKPI('kv-gdp','sh-gdp', 'R '+c.gdp+'bn', sCol(c.score));
+  document.getElementById('sub-gdp').textContent = 'of R '+c.gdpPot+'bn potential';
+
+  // ── Update KPI Card 2: Annual growth rate ────────────────────────────────
+  // Colour: green (>0.1%), amber (neutral), red (<-0.1%)
+  const growthCol = c.growth>0.1 ? '#5DCAA5' : c.growth<-0.1 ? '#F09595' : '#FAC775';
+  animKPI('kv-grow','sh-grow', (c.growth>0?'+':'')+c.growth+'%', growthCol);
+
+  // ── Update KPI Card 3: Yearly investment potential ───────────────────────
+  // Positive (>+0.5bn) = green with + prefix
+  // Negative (<-0.5bn) = red with − prefix
+  // Neutral  (±0.5bn)  = amber, shows ±0
+  const invAbsStr = 'R '+Math.abs(c.invDelta).toFixed(1)+'bn';
+  const invStr = c.invDelta>0.5 ? '+'+invAbsStr : c.invDelta<-0.5 ? '-'+invAbsStr : '± 0';
+  const invCol = c.invDelta>0.5 ? '#5DCAA5' : c.invDelta<-0.5 ? '#F09595' : '#FAC775';
+  animKPI('kv-inv','sh-inv', invStr, invCol);
+  document.getElementById('sub-inv').textContent = 'ideal: R '+c.invIdeal+'bn per year';
+
+  // ── Update KPI Card 4: Jobs unrealised ───────────────────────────────────
+  // Red if > 60k unrealised, amber if 30k–60k, green if < 30k
+  const jobsCol = c.jobs>60000 ? '#F09595' : c.jobs>30000 ? '#FAC775' : '#5DCAA5';
+  animKPI('kv-jobs','sh-jobs', '~'+(c.jobs/1000).toFixed(0)+' 000', jobsCol);
+  document.getElementById('sub-jobs').textContent = 'of '+Math.round(c.jobsPot/1000)+'k potential';
+
+  // ── Update health score bar in lever panel ────────────────────────────────
+  document.getElementById('gfill').style.cssText = `width:${c.score}%;background:${sCol(c.score)}`;
+  const gs = document.getElementById('gscore');
+  gs.textContent = c.score+' / 100';
+  gs.style.color = sCol(c.score);
+  document.getElementById('glevel').textContent = c.score>=65?'Thriving':c.score>=45?'Recovering':c.score>=30?'Struggling':'Critical';
+
+  // ── Update derived outputs panel (right panel) ────────────────────────────
+  document.getElementById('d-gdp').textContent     = 'R '+c.gdp+'bn';
+  document.getElementById('d-growth').textContent  = (c.growth>0?'+':'')+c.growth+'%';
+  document.getElementById('d-growth').style.color  = growthCol;
+  document.getElementById('d-inv').textContent     = invStr;
+  document.getElementById('d-inv').style.color     = invCol;
+  document.getElementById('d-jobs').textContent    = '~'+(c.jobs/1000).toFixed(0)+' 000';
+  document.getElementById('d-10yr').textContent    = 'R '+c.gdp10curr+'bn';
+  document.getElementById('d-10yr-ref').textContent= 'R '+c.gdp10ref+'bn';
+
+  // ── Update top-right GDP potential label ─────────────────────────────────
+  document.getElementById('topRight').textContent = 'GDP potential: R '+c.gdpPot+'bn · Base year: 2024';
+
+  // ── Trigger city animation toward new score ───────────────────────────────
+  targetScore = c.score;
+  startLoop();
+}
+
+
+// ── LOGO PRELOADER ────────────────────────────────────────────────────────────
+// Loads the LERTT logo once as an Image object so it can be drawn on the canvas.
+// Embedded as base64 — no external file required.
+(function() {
+  const img = new Image();
+  img.src = 'data:image/png;base64,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5V3K8tipqpVlJHpMPBwpqLCIi1zMEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAQ/wBqTC2ZHg8lzgjBq6AcW4HMs71TKm3LHwSfCbyK9KKyniqqWWmmaHRysLHA94I2VBNZsXlw3UOtoHMLYHP44jtyLT0WniYWese0/TOM1oPDy4rNe3M73s05a7Fs/ipppOGlqDwPBPLY8irxNcHNDmkFpG4I715qmd9DX01fEdjG4HdX30WyNuTaf2+sMnHNEwRSn1jofoU4afGJi/U+Ds44iPs/wZoiIts8gEW2WRkUbpJHBrGjdxPcFDGa6h3KurZaO0SGlpGHh42/Df69+4LYw2FniJWiYK+IhRV5E0nkvjLVU0X8JURM+V4Crk68Xp/wrrWH/Od9q4s0lTM7eWplefFziV0Voh85eDRek1yiT1d81x22td5Svjle37yL0io8yjU2417X01lh81iPLyrvhbfsWCeSZvu7dx9ZW4kAbDkFuUdHUaebzf1NWrj6s8lkbXNfJK6eoldLK47uc47klankm62uK3jTNCV9aCjq7lVspKKJ0kjzsNhuvpZLbV3q4x0NFEXucdt+75T6lO+FYpRY7Rjha2WscPukpH6B4BamKxcMPHq+htYbDSrP6GJWXSiHzdr7pWu8qRuWRjcD51yK3Se3vZ/4avkY7u428lJCLhvH4hu+sddYKja2qQvX6WXeF3/hpYp2+p231rIsD09Nsq2190LXSsO7Iwd9j4lSMitPSFacdVsiGBpRlrJBERaJthERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAFXztk4kK/HaXJaeIeVpXeSmI68J6Kwa6LUCzR3/DbpapGB/l6dwaP6QG4/SqVI68Wjd0diXhcTCp0eftzPO1n/iKEsPwmqxXYuyktqqvG6iblI3ijafxm/8AZV8qKeS33ipopWlrmvLSD3EFd9pNfZcY1IoK6N3A3y7eLfpsTzXPpS1ZJn0bSGGWKws6f0y/B6FItkErJoI5oyCyRoc0jvBG63rpnyw6jMhMcWuIg38p5A7bKujdtz496tDIxsjHMe0Oa4bEHvChzNdO7hTVklXZ4zUUzyXeTb8Jnq2712NF4iELwk7XOZpGhOdpRzsYJum65UtousTuGSgqQR3eTK+MtJVws4paWZje8lhAXZ1k+DOQ4NcUfMlbStA4FN1a5WwK2SH0dh3rVy2lQiScNIbLTW/G464MBqKocTnbcwO4LNliWlNeyrxWCIEcUPokLLV5XFuTrS1up6TDKKpR1egREWuZwiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAhREBQvtCWYWLVS4xMbtHJMZGfI7msEqD5Oqhnby2IO6nbtqWvzbLqK5tbyqYBv8rTsoJkHladpC5dVas2j6noyrtsLTn9F4yPQTSK6tvOnFkrg/ic6la1/qI5LK1Xnst6iY3RYL7g3m701BV08zixs7+HjafDdTGc8wwf9TWv84aujCacUz57pDB1KWJnFRdru2RkaLGv3fYV/Oi1fnDU/d9hf857V+cNVtZdTT2FXtf+DJVsmiimjMc0bJGHq1w3BXW2nI7BdncFtvFFVu8Ipg4rtVKfQpKDi7SViMtSMAp3Ust2scPkpoxxSwNHovHeQO4qJ2nuPVWlIBGx5hQrqlhk9ur33a1wOfRzHeRjBv5N32Lt6Oxmt/FUft/Rx8dhbfyQXuYKtFyKO3V9W8Mp6WWRxO2zWkrNcf0yutYWyXF7aSLfm083EfIunUq06Wc3Y51OlOo/hR2OiE83lp4RuYyCT4KV11WN2G32GjFPRR7b/Ceerl2q81i60a1VyjwPQYak6VNRYREWsZwiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgIp7TGA1GbYRx22ISXGgJliYOsjdubR61SdjJ6SV9HVRPimjcWuY8bEHwIXpcsA1E0iw3Nnuqa+h81ryNvOqb0Hn+0OjlrVqGu7o9JobTiwcdjWV48muRRFzQ7vXzMDT3hWYufZaeH/7Mylpb4VEG31brjwdly5f87JqP/wCELv2rW/b1Oh6dae0e1faeH/RXDyA/GW11P/TVk5ey5X7fc8opv/lC5fA9lu8fznoPZP8AsUbCp0JWncB/2eH/AEV3t1xr7HcIa+31ksE0bwWuY8gr0C0jvdZkWn1qute1wqJYgHkjbjI+++dQ7i3ZdoKa5Q1WQ301kMbg4wQR8If6iT0Vh7fSU1BRQ0VHC2GnhYGRsaNg0DoFtUKcoXbPN/qHSOFxajGjm1z/AAfdaOa1zS1wBB6ghaotk8ufKCmpqffyFPFFv14GAfUvqiI3cWsEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAFo5zW/CcB8pWJ6v5PPiGnt1vtLGJKmCIiEEbgPPQleeNfmmaXutnrqzKruZJXlxDat7WjfuAB2ClIHpx5aH+VZ+UE8tD/Kx/lBeX/urkp5nJbx+fSfanurkn85bx+fSfaliLnqB5aH+Vj/KC08vD/LR/lBeYBumR/wA5Lv8An0n2rT3UyL+cd2/PpPtSwueoHl4P5aP8oJ5xT/y8X5YXl97pZH/OO6/n0n2rT3QyLvyK6fnsn2pqi56g+c03xiL8sIKmnPSeL8sLy/8AdDIB1yC5/nkn2rUXHIR0yC6D/wC7J9qWFz1BE0J6Sx/lBbmua7m1wd8hXl+LvlDfg5Jdh/8Aek+1ZBp7qRmuK5bRVUGQXCoYZGiSCed0jJGk8wQSlhc9IUXGtdSay2UtWW8JmhbIW+G4B2XJUEhERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREB1mVWSiyPH6yy3BpdTVUZjft1G/eFUi9dk/Kae4zizXa31FGXkxGUlrg3uBHirlIlwUoHZa1CH4VaPbFa/vW9QvjVo9sfsV1l86mogpojLUzxwxjq6RwaB85U3BSz963qH8bs/tT9ifvWtQ/jdn9qfsVwX5LjrDs6+W0f/ZZ9q2/upxv/ANetv5yz7UuRYqB+9a1C+N2j2p+xa/vWtQvjVo9sfsVvv3U41/69bfzln2p+6nG//Xrb+cs+1NYWKhDstagfGrR7Y/Ytf3rWfHrVWn2x+xW+jyXHpHBrL5bnE9AKln2rtWua5oc0hzSNwQeRTWJsUrPZZz3uqbT7Y/Ysq0u7LddQ5RBdcxuFLJS0zg9lNTEkyOHifBWrRLg2xMZFEyKNoaxjQ1oHcAtyIoAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAVFO2Rml+u2p1XjLq2antVv4WMp2OLWvdtuXO8VetQhrx2f7bqJd2363V7bZdi0MlL2kxygdCduYKlAogLbA7mahoPrX0baoO6qj+gqy/70fJB8HJ7V87JPsW8dkzJx/1JaPyJPsVrorZlZ/cmL43H+S5bHWmP45F+S5Wc/em5N/OS0/kSfYh7JmSn/qS0/kSfYmROZV6W3MjHGysZxN5jYEFXF7Cub36+Wm7Y3d6mathtwbJTTyuLnNaTtwbnqFizuyNkjzs7KLU0eqOT7FYjRPTK06Y4t7lUDzU1UzvKVdU5uxld+wDwVWEZ4iIoJCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgC4V5udJaaJ1ZWvcyFvUhu65qxTVUb4hUj1LLRgp1IxfNmOrJwg5LkfM6kYqOtZL7Jy2++VinxyX2LlA3kh37/Su0hxe7y0IrmWypdTFvGJA08JHiu5LReHjxk19zkR0jWlwRMnvl4n8cl9i5PfMxP45N7FygkQRn739KGCP8X9Kbqo9WRvKr0ROw1MxM/hc3sXLX3ysV+NzexcoPt1jqrnMYqCgmqXjmRGCdlza3DLzRQGeps1XHE0bl3pbD9Kq9G4ZOzln7ousfXauo5exMfvlYp8bm9i5PfKxT43N7FygZtJT/iH8o/atXUkG3Np/KKvumj1ZTeVXoieBqVinxub2Llr75OK/G5fYuUI2vGq26k+59tqKgN6lnEQPn3X2uOJ3O2ReVrbTUwx9ON3Ft9ao9G4ZPV1s/dF/wB/XtfVy9iZzqVinxyX2LlodTMTH4ZN7FygcUkH4h/KK0dSQfif6ir7qo9WU3lV6Inj3zcS+OS+xctffLxP45L7FyhO04zWXVr32+2T1LWHZxjBIC481ubTTPglhfFKw7Oa4kEFVWi6DdlJ3LPSFZK7ROh1MxMdayb2Llp752I99bL7Fygh1NH3gn51z7ZjNwuMBqKG21FREDsXMaSN0ei6CV3JohaRrPJImganYgfw6X2LluGpeJH8Ok9i5QS6kZG90bo+F7TsQeoK1ELPBTumj1ZG86vRE6HUzEh+Gyn/ACXLQamYmfwub2LlBphZt8FfMUkckjWNjLnOIAAJ3JKndNHqyN51eiJ4GpWKn8Lm9i5a++TivxyX2LlDzMIvv/odd+S77Vx7nYK+1NjNfQT0wedmmQEbqi0bhm7KXlGR46uldx8E0++Rinx2T2RWvvkYp8ef7MqBzCzvH6VyrZY6y6Pc2gt89UW9fJgnZWeiqCV22UWka0nZJE3e+Rinx2Q/5RW06lYoPwyX2LlDdwxS7W6Hy1ZaKqGP8Yg7Lq/NoT94fyikdGYeSvFt/cmWkK0XZonb3zcT+OTexctRqZih6Vc3sXKBnUkHez/UV2NsxK5XOPy1DaamaPfbjbxbfWktF0Iq8pNfcR0hWk7JXJp98rFPjc3sXJ75WKfG5vYuUKXTG661be6FtqKYO6F/FsfnXBFLB+Kfyii0XQaum2HpGsnZonn3ysV+NTexctPfKxX41P7FyhC3WWe5TmCgo5qmQDctj3JAXzr7O6gqjTVtJLBM3qx5IKjddC+rd3G8K1r2yJz98vFPjc3sXLQ6mYn8bm9i5QxR4tXVtJ53S2upmg5+mwOI5de9daaKnBI4CCP6R+1Foyg3ZNkvSFZK7RPPvm4n8bn9i5ajUvFD+FzexcoGjoYpHiOOF73uOwa0kkru48Evz4vKixVnD1++3+tRLRmHj6pW+6EcfXl6Y3+xL/vlYr8bm9i5PfKxT43N7Fygqe3ilmdBPTyQytOxa8kEL5mkgI5tP5RV91UerKvSVXoieffKxT43N7Fye+Vivxqb2LlDFHidyrKUVVLaKuaAgkSMDiD+ldY6hga4tdG5padiC48v0qq0ZQbsm/8AJZ6QrLNonv3ycV+NzexctPfKxX43N7FyhW3YtXXKDy9Fa6upi324o+Ijf6Vw6u0Mo6l9NU00kMzDs5j3OBB+lQtGYduyln7h4+sldrInb3ysU+Nzexcnvk4p8cl9i5QnasdrLmH+51vnqeD4Xk9zt+lfKptzqSofT1EL4pWHZzHb7gpuyg3a7uN4Vkr2JyGpOKn8Ml9kVubqNipOwrX+yKhufGLrT0BrprZUMpg0O8o5vLbxXVmFg25KVoyhLg2HpCtF5os9ba2nuNDFWUri6GUbtJG24XIXQae7DDrcB/JBd+uFUiozcVyOxCWtFMIiKhYIiIAsU1UO2I1CytYnqv8AxQqPlCz4X50fcw4j5UvYgRx5KerAf/KuA/1B31FQG7op/wAVgkqtMqSmiAMktEWN3O3M7rt6Ufwwv1ORo5fFJfQgON3JfeigdV10FJH8KaQMHzldvfcLv1ht3ntwhibCHBpLJA7mV0lHUyUdbBVx/DhkDx8xXQVSNSLlTdzScHCSU1Ym6/V9u07xSFlHTtfO/wBCMHkZH7c3ErHMM1Pq7heY7feqWAQzu4GyRjbhJ8R3hd9eKO3aj4tTy0lS2Opi9NoJ34H7bFrgumwzTOe33Rlfep4THAeJkbD1I7yfBcSmsNsZOt68/c7E3X2kdl6PB1OsWPU1ouEFyomtihqyQ+MdA8c9wsTxm3m8X+jtwJDZpAHEdze9ZTrLkVNd7lBbaF7ZYaQkvkb0Lzy2CxDHLnJZr7SXJjS7yEgLm+Le8Lo4Z1f2yv6rZfg0MQqaxGXD/wCuTHmmRUeC2mlt9spIzO9v3Nh5AAdXHxXRY/qnT1UbqbIqFrWO5F8beJpHrau6y7H6LPbVS3K11kbZ2M9Ak7gg/enwK6mw6YUdJTPqMhrAQBvwxu4Wt9ZJXOprCbH+X18+pv1HiNp/H6fBgWVvtUl8qJbNv5m88TAWkbeI2K6ghz3tjjG73kNaPEldplLLVDep4rM976Nh2a5x33Peu20ps/utlsUsjA6npB5V4I3BPcPpXX2ip0dd8lz4nL2bqVdXqyU7Cy24bilHBWyNicQDIQNy955lYRrXa42z0l+pWfc6lvDI4d57j9CzXNa/EuOOlvtZG2WI8TY2u9Ib+pbr5SW7J8Imp7bKyeIR7wOaejm9Fw6FV06kazvm8+mZ2K1NVIOkrZcOpALnclM+h53xGb/EOULTtfG90bxs5pII8Cpo0M3/AHIzD+sOXS0p8j7o52jvnfYiS7u/2vWf37/1iuOHLLcgwLI6eWuuL4ITAHvkJEo34d9+iw8FbtOrCpG8Hc1atOUJfErH03X3s7v9t0I8ahn6wXF3X3sx/wBu0H+JZ+sFM/SysPUif83kyCO3xHHY2vqDJ6e432aolzyryiTzenyJvAAS+IBoG/cVK+eUd9rbdDHYJzDOJN3kPDd2/Oojzq15HQCmmv0xl4yWxkyB23f3Li6OUcr2v5Ovj3Kztf8AB0dmo33S80lujIa6olDN/Ad6mXLLzQ4Bj1PTW+ja+V/oxN6AkdXOKhS018lsu9LcIhu+nlDwPHxUzZLaaDUPH6attta1k0Y3ZvzAJ6td4LZx1nUhtPRz9zBg77Oep6joMe1XbMXQZBQt8m7l5SFu429bVh2ZzWee/Sz2PcUkgDtuEt2d37ArNse0sggY+fIKtvCB8CJ2wHrJKwXMYbPTXyanscjpKSMBvEXcW7u/Y+Cvhv26rPY3/BXEbbZLa/8ApzdOLHHf8lZT1AJpoW+UlA79ug+dZ1qNnn7laqGzWalhMzGBz+IejGD0ACj7TvIG49k0dVPv5rKPJTbdwPQ/Ms+1BwX91VVHfbJVwuklYGvDnei8DoQVTEajxK2/otl0uXoOSw72Pqvn1scvBcop85oKm2XihiEob6QHNrx4jwKi7MbSbDkVTbQ7ijaeKM9/CeilPB8YpcHt1Rc7xWxeWLfScDs1g8B4lRRmN493cjq7kARG93DGD14R0TCau3mqPo/P0IxV9jF1fV+DLNDDvk1V/h/2rNdTcbiv1tdPSBrrhSDcBpG7m/ilYVoR/GSs/wAP+1c7J7/UYzqdNM1xNPKyMzM7nNI+sLFWhOWMbpvNK/v9DJRlBYVKfBuxkemkbodP5o3AhzTMCD1BUI1D9ppP7R+tWV8pSz2OWpowzyM0LpAWDYHcdflVZqnczy/2z9ayaNnrzqStxZTHx1IQiTBpJZKO3467JK6Nrpntc9hI34GDw9ZXQV2rd1F0LqSip/Mw7kx+/E5vy9y7fSLIaSvsb8XuUoZK1rmRbnbjYe4esLqqnSS5+6/BBWweYF24kd8IDw28VSKoutU/dceV+n0Lt1dlD9vw5+5lGU2635phbb5SQCOrbCZGOPI8urT4qFg7cKacxultw3DPcOimDqt8JiiYTu7n1cf0qEx0WfRzlqS7b5GDH21l3WzLBaWnfCKD+yfrUbao2Caiywvp4vuNc4GPYcuI8iFnGLSyUulEc8Tyx7YC4OHdzXaYzU0mQWmCesZHM+lc1wLvvXgdVoU6kqFWdZZq7TN6dONanGm+NkzsMStUdmx+loGtAcxm7z4uPUqENSj/AP3FyH/ufsUtYvfDc7/Vwce7I49m7Hl8I81E2pg2zi4/3n7FmwEZRxEtfi1cw42UZUFq8Lm/TrIXWC/MfId6afaOYeA7j8yk6/4dTXrKKG8tLTTEB04H3+3wfpUGhTvp3XTS4HHO9/G+Fjw0n+j0WXSEZUmq1N2byZiwMlUTpTzSzMb1iyNjGNx6jcOWzpy09B3NUWPPMfKvtX1EtTXT1Ezy+SSQlxJ681x3dR8q3MPRVCmoo1a9V1ajkyw+nv8AE+3f3QXfroNPP4nW7+6C79eYr/Ml7noaPy4+wREWIyBERAFieq3PEKhZYsT1V/ijULPhfnR9zDiPlS9iBCF21BkuQ0EDKeju1RDEwbNYNtgPnC6vZNl6uUYyykrnmoylHOLsdtcsmv8Ac6M0lfcpZ4HEEscBz2+ZdRw7ha7LUBTGEYq0VYSlKTvJn2tldcLVU+c26rlppO8sPX5R0K51xyfI7jTmnrLvUyRE82ghu/0ALrNuS+1upH19xp6KJzWvmeGAu6DdUnTpt60ksi0JzXwxZxQ0AIWqRxpJc+pu1IP/AIu+xdBleDXnH4TUyBlVSjrLFv6PyhYoYujOWrGWZllhasFdxOjtF3utnlMlsrpqcnqGnkfmPJfe7ZFfbtGIrhcp5ox95vsPn26rrO7dZnjWndzvdqhuMdbSwxSjdoduT+hTVdGn8c7IikqtT4IXMM25Ln2e83S0Pc621klOXH0uHbn8qy+6aZ19Bbp6x10pHiFheWgO3OywHfZTCpTrp6uaInTqUWr5M+ldPPXVclXVyulnkPE97upK5lpvV2tLXNt1fNTtd1DTyPzFZBZcCuVzx4XmOrpo4TG6QNdvxbBYfupjKnVTgs7ESjUptSeVzWVz5ZHSSO4nuJcT4krmW29Xm2RmK33GemjJ3LWEbbrvMQwi4ZJb5K6nqYIo2OLQH77uIXQVtDU0VxfQVURinY/hcHfWinTqNw425EuFSmlPhc582W5NPA+Ca8VD43jhc07cx9C6Zo2WU5NhNfYbGy7VNVTyxvc1oazff0unVYqCC9oJDQSBue5KLpuN6fAisqidqnE3bLQF8b2yRuLXtILSOoKy7JMFr7NYmXcVUNVAQ0uEYO7Qeh5rHbJbqm8XOG30bQ6WU7DfoB4lWhVhODknkRKlOElFrM5cWXZVF8C91W3rIP7F8Lrfb1d42R3OvlqWMPE0OA5H5guzzXE6jGPNxUVtPO6ffZse+4A7+a6vHrVUXu7RW2lcxssgJBeeXJY4Ki47SKVuti89trbOTdzry3cLl2m53O0T+WttbNTOPXgdyPyjos6ZpRdQB5W6ULPyvsWL5hj0uOV8dJNUxVBezjDo99gojiKNZ6kXcmVCrSWs1Y+F1yXILrCIK66Tyxfi78IPy7dV1TW8lzLLb5bpdqa3QOaySoeGNc7oF3uYYVc8bhjqZXx1NO47Okj32afA7qylSpyVNWTZDjUqRc3mkYq5m4XYWe/32zRuittzngjd1YCCPmB6Lt8OxKryds7qapgg8iRv5QHnv8i6K6UjqG5VFE97XuheWFzeh2VtanUbpvNrkV1Z00prJM3Xa8Xe8SNfc7hPU8I2Ac7kPmHJcLh5LLMPwesyWhlq6esp4Gxv4NpAef0LvW6SXPbndaT8l32LE8Th6L1LpWMiw9aqta17mAW6vr7bM6a31UlPI4bFzDzIWlyra25VHnNfUPqJtg3jf12C7jNMYqMYq4KeepinMzC8FgI22O3euJi9mqcgvLLZSvjje5jnl0nQAfIsinTcdty6mNwqKWy8Gyivt7o6XzWludRFBsR5MO5c/lXXEbkkncnmV3eY49UYzcIqOpqIp3yR8YMYOw5+tdISrUtSS14cytTXT1Zcj5lrmuD43uY9p3DmnYg/Ku9hzHLI4GwtvlUGNHCPgk7fLsu5xnTm9XimbVTujoYXDdnlQeJw+RffIdM7zbaV1VRyx1zGjdzGAh4Hjt3rDOvhpS1JtNmaFHERjrRTSMIlfNNK6aolkmkcd3Pe4uJ+crYQt3Pchw2I5EHuXZYvZZ8gvUdsp5Y4nvaXcT99gB8izykoK7ySMMYubtzZpBfLvFbzbmXCYUhbw+S35beC0pLtcaSN7KWsmha8ekGu2BXPy/FLljM8barhmgk+BMzfhJ8PUVzsXweuv9pdcYKyniY1xaWvB35fIsDqUVDXyszKqdVz1M7o6Khu9yoJXS0VZLBI4bOc08yuNW1VTXVT6qrmdNM87ue7qV8pWmOV8ZIJY4tJHfsVtWdRSetbMwuUrWbNSuyoL/eaGjdR0lwmhp3bgxt2259V1uy1AUyipKzREZOLumac9yT1Wh+EFrstp+E35UBYjTz+Jtt/ugu/XQ6ffxQt/wDdrvl5Kt8yXuenpfLj7BERYjIEREAWJ6rfxRqFlixPVb+KNQs+F+dH3MOI+VL2IHWq2ArduvWHmBstwW3da7qQaldjiHPLLYP6w1dYSuyw97W5XbXvcGtE7SSTsAqVfQ/Zl6XrXuTTqBZrxd6WmZaaowujeS8CQs4h8oXxv1XFYcANLeapk1UaYx7E7mRx+tcLUbJ5rRU26e3Vkbm8R8qxrgQ4eBXB1Ep7bleKQXqkqIhVQR8bWF43Lfvm7eK4NGEnGmp5Rv8Af7nbqTipTcPVYh8nZqnzTqMzac0kQk8mXwOHHv0335qAXHkp309nopNPaSjnrIYnSQOY7d4BG+4W/pVfxx9zR0a/5H7GJZhjdXarJJWfuhNUAQ0xiUkkH51HMh2BUnXrA7PR2epqYb+ZnwxlzWbt9Ij51F0h6rYwc1OLtK/2sYcXBxkrq33uTvg3LSuM/wBUk+oqB2u9FThhFZSs0vjifUwtk81kHCXgHoe5QYSeFYMAvjq+/wDZmxr+Cn7f0TdonI2LCJp378LJ5HHbwC+ecWOny6309+sXDNUM2D2jkXN8D6wtmjlRSswOWGaoije+WUcLngHmsKwTKnY7lMkU8jvMJZXMkG/Ic+TlrRpT21SpT9UX/k2HUgqVOE+DX+DPtXmGPTuJjxs5skII9YChF43CmvWatpKnCh5tUwy8VRGQGvBOyhfbcLb0XfY59TV0j81W6E3YHVMyjTmS2zOBmjiNO8H5PRK6TRSySQ3S4XCobsaYmnbuO/vKx3STIGWTIDT1UgZS1Y4HOPRru4qT8yyC22LHaqejkpzUT7iNsZHpPPedlp11OlKdGCyna35Nui4VYxqyecSKNULsbtl1SWuBhp/uMex3HLqfpW7Sb+PlF/Zd9SxZ7nPcXuO7nEknxKyTSuVkWcUckj2sYA7cuOwHJdOrTVPDOC5I59ObniFJ82SxnGPTXmsp5Y7wKARxlpaXkcXPr1UPZjQSWy9yUctZ52WNBEgcSDupczGwWnJaqnnkvbKcwsLAGOad9zv4qK88s1NYrnHTUtb53G+Pi4+X0cloaOmso62duFvybmOi85W+9/wbdOBxZxa/77f9BU33ye11r5MfrngSVMRLWuHI/IfFQfpxLFFmtulmkaxjZObnHYDkVletFZGy426uoapjyGFu8bwdiDuOinFUdrioxvbLyRhquzw8pcczKNN8crseqq+Kqa0xybeTe07hwUP5Tzya4f37vrU2YJldFerFFLNURxVMYDJmvcAdx3/OoNyOTjyGue08QM7tiPlVsC6jxE3UWZGMUFQgocDiR19fTSGOlrqmBpcN2xylo/Qpx1DqKmn03E1PUSxS8EX3RriHdOfNQJKXed7bH4QU5ajVdLJpsY46mF8gii9FrwT0Hcr46K2tLLn/AEUwcns6mfIhmepqqlwfVVM07gNgZHl230rLtFz/AP3Uf+Hk+oLCQ48PQrMdGpooc2ZJPIyNgp5BxOOw7ltYxJUJpdDWwz/mi31Ow125ZRSf4b9q6LTShguWa0VPUgOiZvIWno4joF3OuE0NRktI+CVkrRT7EsduOqwyz3CptF1p7lSkeVgfxAHoR3hYcPGTwijHjZmWvJLFNvhclDW3JLlbJKS02+V9MyWMvfIzkTz22C6/RPJLxVXyS01tVJVU74i9pkO5YR6/WsimmxTUazxecVTaarhHMFwa+MnqOfULdaqTD9P6Oas8+ZNUSDbiLw57v6LQOi0NeksNsXD4/bn1N7VqOvtVL4PcwnWK20tuyrylM0MFVH5R7ANgHd/0r56MnfO4v7iT9i6HK73UZDeprlO3gDvRjZv8Fo6Bd5o3LFDmrJJpGRtEDxxOOw7lvzhKOEcZcbGlCUZYpOPC5LOSC0X4VONTzNbWcAexrhsQeoI8VxMCtFZY7BWUNawNc17i0g7hw26hYFqrcTQZxT3KgnY53k2ODmO35juUkWjJLbeMc88jqYmPfCQ+NzwC123MLlVaU6dCNs4yz9mdKnUhOtK/qXlFf6z/AH2o/vXfWV82rWqdvVzEfyjvrW1pXoTgvib1rstu613QGpHJbCPSb8q3ErZv6TflUEliNPv4oW/+7XfLodP/AOJ9u/ugu+Xkq3zJe7PT0vRH2CIixGQIiIAsW1RjfJiNS2Njnu5bBo3KylFenPZzUuhSpDXi49Srvmdd8TqPZlbhRVvxOo9kVaDYeATYeAXW3u+zyc3di7vBWDzKt+J1Hsynmdb8TqPZlWf2Hgmw8E3u+zyN1ruKvmjrfidR7MrY6hrT+B1PsyrR7DwTYeCb4fZ5G613eCrYoK4fglT7Mp5lXfFan2ZVpNh4BabDwCb4fZ5G613eCrnmFaelHUezK2Otda7rR1PsyrT7DwCbDwTfD7PI3Wu7wVZZbK1vSjqR/llbvc+u+J1PsyrSbDwRN8Ps8jda7vBVo2+u+J1Ps3IKCu+J1PsirSpsFO+H2eRutdxVv3OruvmlT7MrTzCuHWkqfZlWl2Hgmw8Ao3w+zyN1ruKtCirenmtR7MrcKOt+K1Hsz9itFsPALXYeATfD7PI3Wu7wVbdQ1p/A6j2ZWooa74pU+zKtHsPBNh4BN8Ps8jda7vBV0UNcelHU+yK0dba934FU+zKtGinfD7PI3Wu7wVY9ya8HfzKp9m5bxb64daOp9m5WkTYeCjfD7PI3Wu4q55hW7f7pUezK09z674pUn/LKtJsPAJsPAJvh9nkbrXd4KueYVw/BKkf5bk8yr+6lqvZuVo9h4JsPBN8Ps8jda7vBVt1DXnrSVR/yythoa34pU+zcrTom+H2eRutdxVgUdf3UtVt/du+xDQVx60dT7I/YrTop3w+zyN1ru8FW20FaPwSo9mVuNFWbc6So9kVaLYeCbDwCb4fZ5G613eCrBt1WTv5pUD/LK1bbqsHfzSff+7KtLsPAJwjwH0Jvh9nkbrXd4KveY1x5CkqPZlbTb674nUezKtJsPAJsPBRvh9nkbrXd4Ks+59b8UqfZlbhQ1o6UtR7Mq0mw8AtNh4BN8Ps8jda7vBVzzKt+KVHsyt4o634nUeyKtBsPALXYeATfD7PI3Wu7wVf8yrfidR7IrXzKu+J1HsyrP7DwTYeCje77PI3Yu7wVg8xrvidR7Mrc23XAubtQ1J/yyrO7DwRN7vs8k7sXcdJgbHsxG3Me1zXCEbgjYhd2iLkzlrScup0ox1YpBERVLBERAEREBguuGoA01wiTJDb/AD/gmZF5Hj4d+I9d1Ag7YrndMJP51/2Vk9QcMsedWA2PIIZZaIyNkLY38JJHTmovvfZw0uoLFXVVPa6oSw073sJqSdiGkjuQEe/vxJB1wg/NVf8AZfN/bKDOuDyfnQVaqmnjbcnwAegJeHb1bq61i7NWlddY6CrqLdXOknpo5Hnzo7EloJ7vWpBnmhmoI1MwSPJxbjb+OeSHyJfxbcJ67rAdee0FJphlrbGMbFxa6FsnlfL8PXu22Usaf4bYsFx1lgx2nfBQskdIGvfxHid1O6qD252B2pEbtulNGP0FECwXZ61mOq77i02J1s8yY125l4+Pc7KXVVLsEReTN9PcYI/rVrUYK862dpCbTnOZ8bGLtr2xMa4TeccO+48Nlm/Z91X99ay3C4e47rYaOZsRYZOPi3G+6qt2z4g7WerIH/Jj+pTF2C28GKX5v9Zj/VSwJj1kzaTAMMkyCK3ivcyZkfkS/h34u/dQXiHa2dfckpbO7DHwmeZsZeKnfh3cBv09ak3tWtDtKZGnvq4vrKpFpBE33yKc7c21AI9oEQPTcHcbqs+pnainxHLq6ww4i2q81lMflX1PDxbd+wCssw7xNPqXnb2i4m++rdX7fCqJPrRAtloJrtaNTp57bPRe5N2iHEyndJxCVveWnxHgpiXl5j91uGMX+jvlqmdDU0sgkY5vLp3H1FeiWkGd2/UHC6W+Ubmtm2DKqHfnHIOo+TwUAiPV7tLz4DnldjP7lBWtpSAJvOOHi3HhspI0E1LOqOKT3w2o23yVQYfJmTi32HXdVF7XcAGtFzft8LY/oU+9hYAaXVwHdXu+pTYEma1ZzJp5g0+SR24XAwyNb5Ev4dwe/dQ7pn2o5sxze1427ERS+fziLywqOLg379tlnHa+bx6LXBv/ALjPrVSOzPD/AOdGNu26VYP6CgPRaR7Y2Oe9wa1o3JJ2ACrRqb2rrZjuTT2nHbE28w0ziySpdPwNc4dQ3YHcetadrvV/3OopcGxuqBrJ27V88bv4Jh+8B8T3qAtCdKLjqVlDacNfBaadwfWVJHID8Uf0ioBbLs/6t5JqnNUVT8RZarRTgtdVOmLvKP7mtG3P1qZF1uM2O2Y5Y6WzWelZS0dMwMjYwbfOfEldkgCijtD6we9PR2qf3GNzNfI9nD5Xg4OEb7qV1hmp2meK6ix0ceT0887KNznRCOXg2J67oCvje2OSP4kO/Oh9i0d2yS3/AKGk/Ogu81v0N08xPTmsu1mtcsdZG9jWPfMXdTzVYtNLPQXvUqgs9yjMlHNUcEjQdjtv4qQT1J20C3pgz/nqh9itLg18/dLiFrv/AJDzfz+mbP5Lffg3HTdRY7sv6SPG5tddz/rR+xS9j9po7FZKOz29jmUlHEIoWuO5DR05qAc5Q32htcqPSupoLfDa/dW41bDIYvKcDY2DkCT6yphnkZDC+aRwaxjS5xPcBzK83td8rfm2ql1uxeXU4l8hTA90beQRAm6ydsSWa5wQ3TC2QU0kga+SGqLnNBPXYgK11srILjb6evpXh8FRG2SNw7wRuF5i5Vi90x8QMudI6mlmhZURg97HDcFXV7HeXjItMIrZPIDVWp3kiCeZYfgn9iAm1Rr2gdUH6WY5RXZlpFzNTOYeAycHDsN991JSrx26WB+n9oaR+Gu/VQGP4n2vKWvvdNSXzFXUFHLIGPqIp+Pye/eQR0VoaKqp62jhq6WVk0EzA+N7TuHNPQheWXkAYd2jmFavsZ6q8cY0+vtSeNu7rbJIeo749/qUsE0a66iSaaYeL/HbBcfuoYYjJwfPuou0m7Tzs5zW244/E3Ufnsvk/LCo4gzkTvt8y7/tpx8ekb9x0m3VX+yy0N1YsL9ufnwH+koD0RceFpPgN1VnLO1nNYMkrLQ/DRN5tKWeUFTtxbHbforSyfwbvkK8zNY4h75Vz5dZz+sVAPQzSvLDm2E0WRuojRGqBPkS7i4dvWse1x1fsemFsjdVRmuudR/AUbHbEj8Zx7gsa0/zO06ednW2Xe6SN42wu8hBv6Ur+4BU8yq8ZBqNnEtwqhLV3Cvm4YYWDfhBPosaPAKeYLFYp2p8gybIaSx2nAGVFXVSBjGsqnHb1nl0CtHRmd1LE6paxk5YDI1p3Ad3gKJOzho9Q6dWRtxr42TZBVsBnlI/gWn7xv7VMCgBERAEREAREQBERAF1WYO4cVuh/qkn6pXarp825YjdP8M/6kQPNCsH+3Zh4Tn616YYW7jxC0O/qUX6gXmfXkDKKhnhVEf6l6V4Cd8Jsx/qcf6oUshHeKk/bebvqA15H/JjH6CrsKlXbi9HNYT4sb9SIMibGLrn9rjDsJqbpAJIgJ/M2777HlvyXcDKdenO3Nxykj+6P2Kb+wk2KalvXlI2PIYz4QB71aMQQjpDGP8A4hTkDzEymqyOurTU5VJWSXEkBzqobPI25K1vYUG2MXz11Ef6qiXtnOYzVqZrWhv3KPoP6KlvsK/xWvPrmjP+lGDOe1SN9L3D+uRfWVSbRwb6lQDxm/8A2FdvtR/8Mnf4qP8AaqRaOO/8yqf1z/8A7ChBnphD/AM/sheeXaS9DUyvPjPL+svQ2H+BZ/ZH1Lzy7Tp4dSqz+/l/WREmbUGkLMs0TgyqxMc66UzD5eAc/LNHPcf0gsV7PGo1XptmoFU55tVU4RVsPgN/hAeIVnOx8ePSeNp5gSkfoUM9rXSw43fTl1mpyLXXv3qGsHKCU/UCjIXAxHtUVtFdtUJ7jbqiOopqiFkkcjDuHAhT72HBw6Y14/r5+pU2lc57G8TieHpv3K5fYg/4Z1/+OP1IDIO1qOLSCub/AE2qj+J19ytdcyvs8skVbEd4nxjdzeW3JXh7WH/CWt+VVK7NZik1ZsMczGvY+qALXDcHkVKBibdqy7sku00xbLKDUSn0n7E+kefUr0M0dt+J2/A7fHhzopLa6MO8q3bikdtzLvWq7dqjSD3GnkzDHKY+58rt6uBjf4Fx++H9ErCOz3qzVYBfm0lZI+Wy1Tw2eIn+DP47U4jgXxRca1XCjulvhuFBOyemnYHxyMO4IK5KqSEREBF/ag/4SVn+Ii+tUn0a/wCL1G78Wcn/AFBXX7UX/CWr/wATF9apNos7fVeB3hI79YKyIZ6UQneFh8Whbl86b/dov7A+pfRVJIt7T2X/ALktLK50MnDWV482h2OxG/wj9Cpbohirsx1Rs9pcN4X1AlnJG/oN5lSN2zc2F8z5tgpZQ6ltbeA8J5GQ9VFeHz5paKoXXEoq+KUNMfnFNCXHn1G+ysiC03bUw+Gpwu35BSRNa63OFM8Nb/y3dPoIUNdkTLv3Mamw0FTIGUlzHm7y47AO+9P0roLvkmsd6t0tvu899q6SUbPikpzwu/QsGE1TabvFMWPp6mCQPAcNi1wO/RLA9SVXvtxDfA7R/jH/AKiljSPKYMwwC13qJ7XSSQhk4B+DI0bOCintxcsAtR8Kx36ihcSSu/Zxxm2ZpnzseurXGCeilLXNOxY8AbOHyLqtRsUvumOfeayOfDUU0ompamPkHgHdrgVlHYzk/wDOui9dNKP0K0/aK00h1Dw54po2i8UIMlG/bm7xYfUfrQhENah6l0epHZ5lbNKxl7oy0VcO/N3dxj1FRP2X27ar2Ef10H/SVg80dZbquehqGyQSxuMcsbuRBHUFZ52Yv+MFgb/W/wD8lSD0HmO0Tz/RK819XG76k1+/fMT/AKivSap/3aX+wfqXmvq8/bUis/vT9ZUIHyv9yvtyp6WC5zzvp6dgZTxu5MY31BWD7Fdswp9XVVlQ9kuSxn7jHMBsyPxZ4nxWSWPTO16haDUHkoo4LvFETT1AGxcR967xBVYY5r7guXBzTLQ3K3zfIQQf0hS0LnpQijnQ3U+3ah46yTjjhusDQ2qp9+e/4w9RUjKpIREQBERAEREAREQBdblFJPX49XUdMAZpoSxgJ2G5XZIgKM1vZn1Slv09bHTW3yT6gyDeraDtvuroYZQ1NtxW2UFYA2op6dkcgB3G4Hiu2RAFWntQ6OZtqDksNdjtPSPgY0AmWoaw7/IVZZEBA3ZT0wy3ToXNuSw00YqGNEfkZg/mD37KeURAVY7SWh+eZ3qDLerBBROpHRsaDLUtYdwNjyKkDsuad5Np9ZbjSZJHTskncwx+RlDxyHPopnRAYFrpi92y3Bn2mysifVGdjwJHho2G+/MqsmnnZw1OseY090raW3CnZMHOLKtpO3ED0V2EQG2MERtaeoACqBrZoBqNlma1V1tNLQOppJnuYX1bWkgnccirgogIz7OWHX7CcENnyCOGOqEvEBFIHjbbxCzrKLHb8jsNXZbpC2alqoyx4I6esesLskQFKcn7L+fU94qI7G6hraDjJhkfUBjuHu3B71P3ZiwTIMAwurtWRMgbUy1XlWiKQPHDt4hSwim4I+19xa75hgFRZrLHG+qkPIPeGj6VXrRrs/aj4vqDaL1dKehbSUtQ2SUsqQTsPAK4yKLg49xoqa40M1DWQtmp52FkjHDcOBVRNTezPkIyKafEjHNQSuLmNe7Ys37lcNFNyLEDdmzF9S8Ie6zZDCJrO/cs3k3MJ9Xq9SnlEUEhERAYLrnjN1y7T6pstmbE6sklY9okfwjYHnzVZ9NuznqXj+bxXiup7eaZryXcFU0nmQeiukiA2QNLII2u6hoB+hce9ee+5NX7nNa6sMLhAHHYce3L9K5aICjF57Nurt5yOouVZBbt6iYyPeaxvefBW40iw2DCMCt1g4I3TxM4qh7eYfIepWXogNhiiPWNn0Kp3aA7POZZRqDW37FoqF1JVu8o5sk7YyHd/Iq2iKbghTss4LnGA2m4WnKo6ZtLI5slOIpxJs/oenRc/tQYFkOoGH0VsxyOB9TDUmR4mlDBw8O3UqXEUAqd2ddCdQMG1Mo79fIKFtFFG9rzFUte7mOXIK2KIgK59orQCsy69tyPDvNoa6b/AHyCV4Y157ng9AfFYjoloHqHiepFovt3p6FlFSz8cpZVNc7bYjkArdIlwbJ2l8D2jqWkBUr1D7Oupl7zGpulFSUJp5JCW8VS0HbdXXRAYXotjtzxbAKKz3dsbauHfjDHhw+lYR2h9Foc7jF3swjgu7Bs7uEo9frU1opuRYpngGjGrmGZPTXi1sZG6N/pBso2c3vBHgrhWmWqmtsEldD5CpcweVYDvs7vXKRQSEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQH/2Q==';
+  img.onload = function() { window._logoImg = img; };
+  window._logoImg = img; // assign immediately so first frame can use it if already cached
+})();
+
+// ── EVENT LISTENERS ───────────────────────────────────────────────────────────
+
+// Scenario preset buttons — load fixed lever values and trigger update
+document.querySelectorAll('#scRow .sc-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('#scRow .sc-btn').forEach(b => b.classList.remove('on'));
+    this.classList.add('on');
+    const s = this.dataset.s;
+    if (s !== 'custom' && SCEN[s]) {
+      const d = SCEN[s];
+      SL.p.value=d.p; SL.m.value=d.m; SL.po.value=d.po; SL.c.value=d.c; SL.sk.value=d.sk;
+      update();
+    }
+  });
+});
+
+// Lever sliders — any slider movement marks the scenario as "Custom" and triggers update
+Object.values(SL).forEach(s => {
+  s.addEventListener('input', () => {
+    document.querySelectorAll('#scRow .sc-btn').forEach(b => b.classList.remove('on'));
+    document.querySelector('[data-s="custom"]').classList.add('on');
+    update();
+  });
+});
+
+// Economy input fields — any change to the right-panel numbers triggers full recalculation
+// Note: these do NOT change the health score or city visual — only the economic output numbers
+['in-gdp','in-inv','in-jobs','in-growth','in-floor'].forEach(id => {
+  document.getElementById(id).addEventListener('input', update);
+});
+
+// Window resize — reinitialise cars and redraw to match new canvas dimensions
+window.addEventListener('resize', () => { carInitScore=-1; update(); });
+
+// Initial render — slight delay to let the DOM finish laying out before measuring canvas size
+setTimeout(update, 80);
+
+</script>
+</body>
+</html>

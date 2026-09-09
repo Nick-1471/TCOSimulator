@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Climate Policy &amp; Rational Priorities — Interactive Simulator</title>
+<style>
+  :root{
+    --navy:#1F3B57;
+    --navy-light:#2E5479;
+    --bg:#F7F8FA;
+    --card:#FFFFFF;
+    --border:#E1E5EA;
+    --text:#1A1F26;
+    --muted:#5B6470;
+    --accent:#C87A2B;
+    --good:#2E7D5B;
+    --bad:#B5482C;
+    --shadow:0 1px 3px rgba(0,0,0,0.06);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+    background:var(--bg); color:var(--text); line-height:1.5;
+  }
+  header{
+    background:var(--navy); color:#fff; padding:28px 24px 22px;
+  }
+  header h1{margin:0 0 4px; font-size:26px; font-weight:700;}
+  header p{margin:0; color:#C9D6E3; font-size:15px;}
+  .wrap{max-width:980px; margin:0 auto; padding:0 20px 60px;}
+  nav.tabs{
+    display:flex; flex-wrap:wrap; gap:6px; margin:20px 0 24px;
+    position:sticky; top:0; background:var(--bg); padding:12px 0; z-index:5;
+  }
+  nav.tabs button{
+    border:1px solid var(--border); background:var(--card); color:var(--navy);
+    padding:9px 14px; border-radius:8px; font-size:13.5px; font-weight:600;
+    cursor:pointer; transition:all .15s;
+  }
+  nav.tabs button:hover{border-color:var(--navy-light);}
+  nav.tabs button.active{background:var(--navy); color:#fff; border-color:var(--navy);}
+  .panel{display:none;}
+  .panel.active{display:block; animation:fade .25s ease;}
+  @keyframes fade{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);}}
+  .card{
+    background:var(--card); border:1px solid var(--border); border-radius:12px;
+    padding:22px 24px; margin-bottom:18px; box-shadow:var(--shadow);
+  }
+  .card h2{margin:0 0 6px; font-size:19px; color:var(--navy);}
+  .card .sub{color:var(--muted); font-size:14px; margin:0 0 18px;}
+  label.field{display:block; font-size:13.5px; font-weight:600; margin:16px 0 6px; color:var(--text);}
+  input[type=range]{
+    width:100%; height:6px; border-radius:4px; background:var(--border);
+    -webkit-appearance:none; appearance:none; outline:none;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:18px; height:18px; border-radius:50%;
+    background:var(--navy); cursor:pointer; border:3px solid #fff; box-shadow:0 0 0 1px var(--navy);
+  }
+  input[type=range]::-moz-range-thumb{
+    width:18px; height:18px; border-radius:50%; background:var(--navy); cursor:pointer;
+    border:3px solid #fff; box-shadow:0 0 0 1px var(--navy);
+  }
+  .valrow{display:flex; justify-content:space-between; font-size:12.5px; color:var(--muted); margin-top:4px;}
+  .readout{
+    font-size:14px; color:var(--text); background:#F0F3F6; border-radius:8px;
+    padding:12px 14px; margin-top:14px; border-left:4px solid var(--navy);
+  }
+  .readout b{color:var(--navy); font-size:15px;}
+  .bars{margin-top:18px;}
+  .barrow{display:flex; align-items:center; gap:10px; margin-bottom:10px;}
+  .barlabel{width:190px; font-size:13px; flex-shrink:0; color:var(--text);}
+  .bartrack{flex:1; background:#EDEFF2; border-radius:6px; height:26px; position:relative; overflow:hidden;}
+  .barfill{
+    height:100%; border-radius:6px; transition:width .3s ease;
+    display:flex; align-items:center; justify-content:flex-end; padding-right:8px;
+  }
+  .barfill span{color:#fff; font-size:12px; font-weight:700; white-space:nowrap;}
+  .pill{
+    display:inline-block; padding:3px 10px; border-radius:20px; font-size:11.5px;
+    font-weight:700; letter-spacing:.02em; text-transform:uppercase;
+  }
+  .pill.fact{background:#DCEFE6; color:var(--good);}
+  .pill.model{background:#FDEBD8; color:var(--accent);}
+  .pill.consensus{background:#E3E9F5; color:#3A4F8F;}
+  .pill.policy{background:#F5E3E3; color:var(--bad);}
+  .quizcard{
+    background:#F0F3F6; border-radius:10px; padding:16px 18px; margin-bottom:14px;
+  }
+  .quizclaim{font-size:14.5px; margin-bottom:12px;}
+  .quizbtns{display:flex; flex-wrap:wrap; gap:8px;}
+  .qbtn{
+    border:1px solid var(--border); background:#fff; padding:7px 12px; border-radius:7px;
+    font-size:12.5px; font-weight:600; cursor:pointer; color:var(--text);
+  }
+  .qbtn:hover{border-color:var(--navy-light);}
+  .qfeedback{margin-top:10px; font-size:13px; padding:8px 10px; border-radius:6px; display:none;}
+  .qfeedback.show{display:block;}
+  .qfeedback.right{background:#DCEFE6; color:#1D5B41;}
+  .qfeedback.wrong{background:#F5E3E3; color:#8C3320;}
+  .scorebar{font-size:13.5px; color:var(--muted); margin-bottom:10px; font-weight:600;}
+  .toggle-row{display:flex; align-items:center; gap:10px; margin-top:16px;}
+  .toggle-row input{width:18px; height:18px;}
+  .toggle-row label{font-size:13.5px; color:var(--text); cursor:pointer;}
+  .warn{
+    background:#FDEBD8; border-left:4px solid var(--accent); border-radius:8px;
+    padding:12px 14px; font-size:13.5px; margin-top:12px; display:none;
+  }
+  .warn.show{display:block;}
+  .footnote{font-size:12px; color:var(--muted); margin-top:18px; border-top:1px solid var(--border); padding-top:12px;}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:20px;}
+  @media (max-width:640px){.grid2{grid-template-columns:1fr;}}
+  .markerline{position:relative; height:0;}
+  .marker{
+    position:absolute; top:-30px; font-size:11px; color:var(--muted); transform:translateX(-50%);
+    white-space:nowrap;
+  }
+  .markertick{position:absolute; top:-4px; width:2px; height:14px; background:var(--muted); transform:translateX(-50%);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap" style="padding:0;">
+    <h1>Climate Policy, Physical Reality, and Rational Priorities</h1>
+    <p>An interactive companion to the position paper — explore the numbers behind the argument.</p>
+  </div>
+</header>
+
+<div class="wrap">
+  <nav class="tabs" id="tabs">
+    <button data-tab="pillars" class="active">1 · Four Pillars</button>
+    <button data-tab="wager">2 · The Wager</button>
+    <button data-tab="grid">3 · The Grid Paradox</button>
+    <button data-tab="mineral">4 · Beneficiation Gap</button>
+    <button data-tab="cbam">5 · CBAM Impact</button>
+    <button data-tab="latitude">6 · Water Vapour vs CO₂ by Latitude</button>
+  </nav>
+
+  <!-- PANEL 1: FOUR PILLARS QUIZ -->
+  <section class="panel active" id="panel-pillars">
+    <div class="card">
+      <h2>Sort the Claim</h2>
+      <p class="sub">Every claim in the climate debate falls into one of four categories. Click the category you think each claim belongs to.</p>
+      <div class="scorebar">Score: <span id="quizScore">0</span> / <span id="quizTotal">0</span></div>
+      <div id="quizContainer"></div>
+    </div>
+  </section>
+
+  <!-- PANEL 2: THE WAGER -->
+  <section class="panel" id="panel-wager">
+    <div class="card">
+      <h2>The Multi-Trillion-Dollar Wager</h2>
+      <p class="sub">The global net-zero transition's cost is stated far more often than what it actually buys in avoided warming. Move the sliders to see the trade-off the paper describes.</p>
+
+      <label class="field">Total transition cost by mid-century</label>
+      <input type="range" id="costSlider" min="150" max="275" value="210" step="5">
+      <div class="valrow"><span>$150 trillion (IEA)</span><span id="costVal">$210 trillion</span><span>$275 trillion (McKinsey)</span></div>
+
+      <label class="field">Avoided warming by 2100</label>
+      <input type="range" id="warmSlider" min="5" max="70" value="40" step="1">
+      <div class="valrow"><span>0.05°C (Lomborg, 2016)</span><span id="warmVal">0.40°C</span><span>0.70°C (Climate Action Tracker)</span></div>
+
+      <div class="readout">
+        Cost per 0.1°C of avoided warming: <b id="costPerTenth">–</b><br>
+        <span style="color:var(--muted); font-size:12.5px;">That is the number rarely put side-by-side with the headline cost figure.</span>
+      </div>
+
+      <div class="toggle-row">
+        <input type="checkbox" id="uncertaintyToggle">
+        <label for="uncertaintyToggle">Account for compounding uncertainty (emissions → warming → real-world damage)</label>
+      </div>
+      <div class="warn" id="uncertaintyWarn">
+        Even a settled number for avoided warming would not, on its own, tell you how much real-world harm that spending prevents. The path from emissions to modelled warming to physical damage is a further, independent layer of uncertainty — so this ratio is best read as illustrative, not as a verified return on investment.
+      </div>
+      <div class="footnote">Figures: IEA Net Zero by 2050 pathway; McKinsey (2022); Climate Action Tracker; Lomborg, <em>Global Policy</em> (2016).</div>
+    </div>
+  </section>
+
+  <!-- PANEL 3: GRID PARADOX -->
+  <section class="panel" id="panel-grid">
+    <div class="card">
+      <h2>The Grid Paradox</h2>
+      <p class="sub">A battery-electric vehicle is only as clean as the electricity that charges it. Drag the slider to change the grid's carbon intensity and watch the lifecycle emissions shift.</p>
+
+      <label class="field">Grid carbon intensity (kg CO₂ per kWh)</label>
+      <input type="range" id="gridSlider" min="0" max="100" value="95" step="1">
+      <div class="markerline">
+        <div class="markertick" style="left:0%"></div>
+        <div class="marker" style="left:0%">0.00 (100% solar)</div>
+        <div class="markertick" style="left:95%"></div>
+        <div class="marker" style="left:95%">0.95 (Eskom, coal-heavy)</div>
+      </div>
+      <div class="valrow" style="margin-top:26px;"><span>Solar-charged</span><span id="gridVal">0.95 kg CO₂/kWh</span><span>Eskom grid</span></div>
+
+      <div class="bars" id="gridBars"></div>
+      <div class="readout" id="gridReadout"></div>
+      <div class="footnote">Lifecycle CO₂ over 100,000 km. Budget ICE and hybrid figures are fixed (unaffected by grid mix); BEV figure is interpolated between the solar-charged and Eskom-grid-tied cases from the Think Tank's Vehicle Total Cost of Ownership &amp; Lifecycle Emissions Analysis (2026).</div>
+    </div>
+  </section>
+
+  <!-- PANEL 4: BENEFICIATION GAP -->
+  <section class="panel" id="panel-mineral">
+    <div class="card">
+      <h2>The Manganese Beneficiation Gap</h2>
+      <p class="sub">South Africa exports most of its manganese ore raw. Move the slider to see what happens to export value if more of it were processed domestically first.</p>
+
+      <label class="field">Share of 2025's ~26 million tonnes processed to battery-grade sulphate before export</label>
+      <input type="range" id="mineralSlider" min="0" max="100" value="0" step="1">
+      <div class="valrow"><span>0% (today)</span><span id="mineralVal">0% processed</span><span>100%</span></div>
+
+      <div class="bars" id="mineralBars"></div>
+      <div class="readout" id="mineralReadout"></div>
+      <div class="footnote">Raw ore: ~R3,500/tonne. Battery-grade manganese sulphate: ~R30,600–R50,400/tonne (this model uses the conservative low end). Figures from the Think Tank's Beneficiation Position Paper (2026); this is a simplified illustration and does not account for processing costs.</div>
+    </div>
+  </section>
+
+  <!-- PANEL 5: CBAM -->
+  <section class="panel" id="panel-cbam">
+    <div class="card">
+      <h2>CBAM: A Border Tax With a Local Price Tag</h2>
+      <p class="sub">The EU's Carbon Border Adjustment Mechanism prices carbon on South African exports regardless of domestic policy. Slide between modelled scenarios to see the sectoral exposure.</p>
+
+      <label class="field">Carbon price / coverage scenario</label>
+      <input type="range" id="cbamSlider" min="0" max="100" value="0" step="1">
+      <div class="valrow"><span>Lower-impact scenario</span><span id="cbamVal">Lower-impact scenario</span><span>Higher-impact scenario</span></div>
+
+      <div class="bars" id="cbamBars"></div>
+      <div class="readout" id="cbamReadout"></div>
+      <div class="footnote">Modelled EU export declines by sector; South Africa's GDP impact is estimated separately at 0.91–1.12% across the African continent. Ferromanganese and other ferroalloys fall within CBAM's iron and steel coverage.</div>
+    </div>
+  </section>
+
+  <!-- PANEL 6: WATER VAPOUR VS CO2 BY LATITUDE -->
+  <section class="panel" id="panel-latitude">
+    <div class="card">
+      <h2>Water Vapour vs CO₂, Tropics to Poles</h2>
+      <p class="sub">This is an illustrative concept diagram, not a measured or modelled dataset. It exists to show the direction and interaction of three things: outgoing infrared radiation falls with distance from the equator, water vapour falls much faster still (warm air holds far more moisture than cold air), and CO₂'s concentration doesn't change with latitude at all. Drag the slider to see how the balance between the two gases shifts.</p>
+
+      <label class="field">Latitude</label>
+      <input type="range" id="latSlider" min="0" max="90" value="0" step="1">
+      <div class="valrow"><span>0° — Equator</span><span id="latVal">0°</span><span>90° — Pole</span></div>
+
+      <svg id="latChart" viewBox="0 0 640 260" style="width:100%; height:auto; margin-top:18px; background:#F7F8FA; border-radius:8px;"></svg>
+      <div style="display:flex; gap:18px; flex-wrap:wrap; font-size:12.5px; color:var(--muted); margin-top:8px;">
+        <span><span style="display:inline-block; width:10px; height:10px; background:#8C949E; border-radius:2px; margin-right:5px;"></span>Available outgoing infrared radiation</span>
+        <span><span style="display:inline-block; width:10px; height:10px; background:#2E5479; border-radius:2px; margin-right:5px;"></span>Water vapour's effect</span>
+        <span><span style="display:inline-block; width:10px; height:10px; background:var(--accent); border-radius:2px; margin-right:5px;"></span>CO₂'s effect</span>
+      </div>
+
+      <div class="readout" id="latReadout"></div>
+      <div class="footnote">Illustrative only. Curve shapes are conceptual approximations (radiation intensity roughly tracking a cosine-of-latitude decline; water vapour declining faster still, consistent with the Clausius-Clapeyron relationship) chosen to show the correct qualitative behaviour, not measured or simulated climate data. The equator-to-pole starting ratio is set to match the commonly cited global-average split of water vapour contributing roughly 50% and CO₂ roughly 20% of the total greenhouse effect (Kiehl &amp; Trenberth, 1997).</div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+// ---------- TAB SWITCHING ----------
+document.querySelectorAll('nav.tabs button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ---------- PANEL 1: FOUR PILLARS QUIZ ----------
+const claims = [
+  {text:"Atmospheric CO₂ has risen from ~280 ppm before industrialisation to over 421 ppm today (Mauna Loa record).", cat:"fact", note:"Directly measured, repeatedly, by instruments."},
+  {text:"Global mean surface temperature has risen roughly 1.1–1.3°C since the late 19th century.", cat:"fact", note:"Confirmed by multiple independent instrumental records."},
+  {text:"Climate sensitivity is a 'likely' range of 2.5°C to 4.0°C per doubling of CO₂ (IPCC AR6).", cat:"model", note:"A range from simulations and assumptions, not a directly observed number."},
+  {text:"Fully delivering current net-zero pledges would avoid roughly 0.4–0.7°C of warming by 2100.", cat:"model", note:"A projection from a climate model under stated policy assumptions."},
+  {text:"Human activity is the dominant driver of the warming observed since the mid-20th century.", cat:"consensus", note:"A documented level of agreement among researchers on attribution."},
+  {text:"CO₂ traps and re-radiates infrared energy — the basic greenhouse mechanism.", cat:"consensus", note:"Genuinely settled physics, confirmed by direct satellite spectroscopy."},
+  {text:"South Africa should withhold EV incentives until Eskom's grid is meaningfully decarbonised.", cat:"policy", note:"A value judgment about how to weigh cost, risk, and priorities — not a finding of physics."},
+  {text:"A flat carbon tax without a rebate mechanism is a reasonable way to price emissions.", cat:"policy", note:"A choice about acceptable cost and distributional fairness."},
+  {text:"Raw manganese ore trades at roughly R3,500/tonne versus R30,600+/tonne processed.", cat:"fact", note:"A directly observable market price comparison."},
+  {text:"Specific 'ice-free Arctic by [year]' predictions will be borne out on schedule.", cat:"model", note:"Several such specific-date predictions have already missed — a reminder that models carry ranges, not certainties."},
+];
+let quizScore = 0, quizAnswered = 0;
+document.getElementById('quizTotal').textContent = claims.length;
+const catLabels = {fact:"Measured Fact", model:"Modelled Projection", consensus:"Scientific Consensus", policy:"Policy Choice"};
+const quizContainer = document.getElementById('quizContainer');
+claims.forEach((c, i)=>{
+  const div = document.createElement('div');
+  div.className = 'quizcard';
+  div.innerHTML = `
+    <div class="quizclaim">${i+1}. ${c.text}</div>
+    <div class="quizbtns">
+      ${Object.keys(catLabels).map(k=>`<button class="qbtn" data-cat="${k}" data-idx="${i}">${catLabels[k]}</button>`).join('')}
+    </div>
+    <div class="qfeedback" id="fb-${i}"></div>
+  `;
+  quizContainer.appendChild(div);
+});
+quizContainer.addEventListener('click', (e)=>{
+  if(!e.target.classList.contains('qbtn')) return;
+  const idx = +e.target.dataset.idx;
+  const chosen = e.target.dataset.cat;
+  const card = e.target.closest('.quizcard');
+  if(card.dataset.done) return;
+  card.dataset.done = "1";
+  quizAnswered++;
+  const correct = claims[idx].cat === chosen;
+  if(correct) quizScore++;
+  document.getElementById('quizScore').textContent = quizScore;
+  const fb = document.getElementById('fb-'+idx);
+  fb.classList.add('show', correct ? 'right' : 'wrong');
+  fb.innerHTML = (correct ? "✓ Correct — " : `✗ This is actually <b>${catLabels[claims[idx].cat]}</b> — `) + claims[idx].note;
+  card.querySelectorAll('.qbtn').forEach(b=>b.style.opacity = '0.5');
+});
+
+// ---------- PANEL 2: THE WAGER ----------
+const costSlider = document.getElementById('costSlider');
+const warmSlider = document.getElementById('warmSlider');
+const uncertaintyToggle = document.getElementById('uncertaintyToggle');
+function updateWager(){
+  const cost = +costSlider.value;
+  const warm = +warmSlider.value / 100;
+  document.getElementById('costVal').textContent = `$${cost} trillion`;
+  document.getElementById('warmVal').textContent = `${warm.toFixed(2)}°C`;
+  const perTenth = (cost / (warm*10));
+  document.getElementById('costPerTenth').textContent = isFinite(perTenth) ? `$${perTenth.toFixed(1)} trillion` : '—';
+  document.getElementById('uncertaintyWarn').classList.toggle('show', uncertaintyToggle.checked);
+}
+[costSlider, warmSlider].forEach(el=>el.addEventListener('input', updateWager));
+uncertaintyToggle.addEventListener('change', updateWager);
+updateWager();
+
+// ---------- PANEL 3: GRID PARADOX ----------
+const gridSlider = document.getElementById('gridSlider');
+const ICE = 15015, HYBRID = 11433, SOLAR_BEV = 8400, GRID_BEV = 24600, ESKOM_INTENSITY = 0.95;
+function bevAt(intensity){
+  return SOLAR_BEV + (GRID_BEV - SOLAR_BEV) * (intensity / ESKOM_INTENSITY);
+}
+function renderGridBars(){
+  const intensity = (+gridSlider.value/100);
+  document.getElementById('gridVal').textContent = `${intensity.toFixed(2)} kg CO₂/kWh`;
+  const bev = bevAt(intensity);
+  const data = [
+    {label:"Budget ICE", val:ICE, color:"#8C949E"},
+    {label:"Hybrid (HEV)", val:HYBRID, color:"#2E7D5B"},
+    {label:"Battery-Electric (BEV)", val:bev, color: bev < HYBRID ? "#2E7D5B" : "#B5482C"},
+  ];
+  const max = Math.max(ICE, GRID_BEV);
+  const bars = document.getElementById('gridBars');
+  bars.innerHTML = data.map(d=>`
+    <div class="barrow">
+      <div class="barlabel">${d.label}</div>
+      <div class="bartrack"><div class="barfill" style="width:${(d.val/max*100).toFixed(1)}%; background:${d.color};"><span>${Math.round(d.val).toLocaleString()} kg</span></div></div>
+    </div>
+  `).join('');
+  const readout = document.getElementById('gridReadout');
+  if(bev < HYBRID){
+    readout.innerHTML = `At this grid intensity, the BEV <b style="color:var(--good);">beats the hybrid</b> on lifecycle carbon. The crossover point is roughly <b>0.18 kg CO₂/kWh</b> — well below Eskom's current ~0.95.`;
+  } else {
+    readout.innerHTML = `At this grid intensity, the BEV <b style="color:var(--bad);">produces more lifecycle carbon than the hybrid</b> — this is the "grid paradox" the paper uses to argue against incentivising grid-charged EVs ahead of grid decarbonisation.`;
+  }
+}
+gridSlider.addEventListener('input', renderGridBars);
+renderGridBars();
+
+// ---------- PANEL 4: BENEFICIATION GAP ----------
+const mineralSlider = document.getElementById('mineralSlider');
+const TOTAL_TONNES = 26_000_000, RAW_PRICE = 3500, PROCESSED_PRICE = 30600;
+function renderMineral(){
+  const pct = (+mineralSlider.value/100);
+  document.getElementById('mineralVal').textContent = `${Math.round(pct*100)}% processed`;
+  const rawValue = TOTAL_TONNES * RAW_PRICE;
+  const processedTonnes = TOTAL_TONNES * pct;
+  const rawTonnes = TOTAL_TONNES * (1-pct);
+  const totalValue = (rawTonnes*RAW_PRICE) + (processedTonnes*PROCESSED_PRICE);
+  const uplift = totalValue - rawValue;
+  const fmt = (n)=> 'R' + (n/1e9).toFixed(1) + 'bn';
+  const max = TOTAL_TONNES*PROCESSED_PRICE;
+  const bars = document.getElementById('mineralBars');
+  bars.innerHTML = `
+    <div class="barrow">
+      <div class="barlabel">Value at 0% processed (today)</div>
+      <div class="bartrack"><div class="barfill" style="width:${(rawValue/max*100).toFixed(1)}%; background:#8C949E;"><span>${fmt(rawValue)}</span></div></div>
+    </div>
+    <div class="barrow">
+      <div class="barlabel">Value at current slider</div>
+      <div class="bartrack"><div class="barfill" style="width:${(totalValue/max*100).toFixed(1)}%; background:var(--accent);"><span>${fmt(totalValue)}</span></div></div>
+    </div>
+  `;
+  document.getElementById('mineralReadout').innerHTML =
+    `Additional export value captured by processing ${Math.round(pct*100)}% domestically: <b>${fmt(uplift)}</b> per year, before accounting for processing costs and new local jobs in that value chain.`;
+}
+mineralSlider.addEventListener('input', renderMineral);
+renderMineral();
+
+// ---------- PANEL 5: CBAM ----------
+const cbamSlider = document.getElementById('cbamSlider');
+const cbamSectors = [
+  {label:"Aluminium", lo:9.6, hi:13.9},
+  {label:"Iron & Steel", lo:5.71, hi:8.17},
+  {label:"Cement", lo:2.01, hi:5.22},
+  {label:"Fertiliser", lo:2.13, hi:4.98},
+];
+function renderCbam(){
+  const t = (+cbamSlider.value/100);
+  document.getElementById('cbamVal').textContent = t < 0.5 ? "Lower-impact scenario" : "Higher-impact scenario";
+  const max = 14;
+  const bars = document.getElementById('cbamBars');
+  bars.innerHTML = cbamSectors.map(s=>{
+    const val = s.lo + (s.hi-s.lo)*t;
+    return `
+    <div class="barrow">
+      <div class="barlabel">${s.label}</div>
+      <div class="bartrack"><div class="barfill" style="width:${(val/max*100).toFixed(1)}%; background:var(--bad);"><span>-${val.toFixed(1)}%</span></div></div>
+    </div>`;
+  }).join('');
+  document.getElementById('cbamReadout').innerHTML =
+    `Projected EU export decline by sector under this scenario. Ferromanganese and other ferroalloys — the refined form of the manganese ore in Panel 4 — fall within the iron and steel category, tying South Africa's beneficiation opportunity directly to its CBAM exposure.`;
+}
+cbamSlider.addEventListener('input', renderCbam);
+renderCbam();
+
+// ---------- PANEL 6: WATER VAPOUR VS CO2 BY LATITUDE (illustrative) ----------
+const latSlider = document.getElementById('latSlider');
+const latSvg = document.getElementById('latChart');
+
+// Illustrative curve functions (0 = equator, 90 = pole). Not measured data.
+function radiationAt(lat){ // available outgoing IR, floor at 30% so poles aren't literally zero
+  const rad = lat * Math.PI/180;
+  return 0.3 + 0.7*Math.cos(rad);
+}
+function waterVapourRawAt(lat){ // Clausius-Clapeyron-style exponential falloff
+  return Math.exp(-lat/25);
+}
+const CO2_K = 0.4; // sets the equator-line ratio: water(0)=100, co2(0)=40 -> ~50%/20% global split (2.5:1)
+
+function computeCurves(){
+  const pts = [];
+  for(let lat=0; lat<=90; lat+=2){
+    const r = radiationAt(lat);
+    const water = waterVapourRawAt(lat) * r * 100;
+    const co2 = CO2_K * r * 100;
+    pts.push({lat, r: r*100, water, co2});
+  }
+  return pts;
+}
+
+function pathFromSeries(pts, key, xScale, yScale){
+  return pts.map((p,i)=> (i===0?'M':'L') + xScale(p.lat).toFixed(1) + ' ' + yScale(p[key]).toFixed(1)).join(' ');
+}
+
+function renderLatitudeChart(){
+  const lat = +latSlider.value;
+  document.getElementById('latVal').textContent = lat + '°';
+  const pts = computeCurves();
+
+  const W = 640, H = 260, padL = 36, padR = 14, padT = 14, padB = 30;
+  const xScale = (v)=> padL + (v/90)*(W-padL-padR);
+  const yScale = (v)=> H-padB - (v/100)*(H-padT-padB);
+
+  const gridLines = [0,25,50,75,100].map(v=>`
+    <line x1="${padL}" y1="${yScale(v)}" x2="${W-padR}" y2="${yScale(v)}" stroke="#E1E5EA" stroke-width="1"/>
+    <text x="${padL-6}" y="${yScale(v)+4}" font-size="9" fill="#8C949E" text-anchor="end">${v}</text>
+  `).join('');
+  const xTicks = [0,15,30,45,60,75,90].map(v=>`
+    <text x="${xScale(v)}" y="${H-padB+16}" font-size="9" fill="#8C949E" text-anchor="middle">${v}°</text>
+  `).join('');
+
+  const radPath = pathFromSeries(pts, 'r', xScale, yScale);
+  const waterPath = pathFromSeries(pts, 'water', xScale, yScale);
+  const co2Path = pathFromSeries(pts, 'co2', xScale, yScale);
+
+  const markerX = xScale(lat);
+  const r = radiationAt(lat)*100, water = waterVapourRawAt(lat)*radiationAt(lat)*100, co2 = CO2_K*radiationAt(lat)*100;
+
+  latSvg.innerHTML = `
+    <g role="img" aria-label="Illustrative chart of radiation, water vapour effect and CO2 effect from equator to pole">
+      ${gridLines}
+      ${xTicks}
+      <path d="${radPath}" fill="none" stroke="#8C949E" stroke-width="2" stroke-dasharray="4 3"/>
+      <path d="${waterPath}" fill="none" stroke="#2E5479" stroke-width="2.5"/>
+      <path d="${co2Path}" fill="none" stroke="#C87A2B" stroke-width="2.5"/>
+      <line x1="${markerX}" y1="${padT}" x2="${markerX}" y2="${H-padB}" stroke="#1A1F26" stroke-width="1" stroke-dasharray="2 2"/>
+      <circle cx="${markerX}" cy="${yScale(water)}" r="4" fill="#2E5479"/>
+      <circle cx="${markerX}" cy="${yScale(co2)}" r="4" fill="#C87A2B"/>
+    </g>
+  `;
+
+  const share = co2/(co2+water)*100;
+  document.getElementById('latReadout').innerHTML =
+    `At ${lat}°: water vapour's illustrative effect is <b>${water.toFixed(0)}</b>, CO₂'s is <b>${co2.toFixed(0)}</b> (both on the same 0–100 illustrative scale). `+
+    `CO₂'s share of the combined effect at this latitude: <b>${share.toFixed(0)}%</b>. `+
+    (lat < 20
+      ? `Near the equator, water vapour dominates heavily — consistent with the ~50%/~20% global-average split.`
+      : lat > 60
+        ? `Near the poles, water vapour has mostly dropped out, so CO₂ makes up most of what greenhouse effect remains, even though its absolute contribution is smaller here than at the equator.`
+        : `In the mid-latitudes, the balance is shifting from water-vapour-dominant toward CO₂ making up a larger share of a shrinking total.`);
+}
+latSlider.addEventListener('input', renderLatitudeChart);
+renderLatitudeChart();
+</script>
+
+</body>
+</html>
