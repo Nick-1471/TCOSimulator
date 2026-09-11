@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>South African Environmental Burden Index — NMB Business Chamber</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface-1:      #fcfcfb;
+    --surface-2:      #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --gridline:       #e1e0d9;
+    --baseline:       #c3c2b7;
+    --border-hair:    rgba(11,11,11,0.10);
+    --card-bg:        #ffffff;
+    --panel-bg:       #f3f4f0;
+    --series-ev-grid: #2a78d6;  /* slot 1 blue */
+    --series-ice:     #eb6834;  /* slot 2 orange */
+    --series-hybrid:  #1baf7a;  /* slot 3 aqua */
+    --series-ev-solar:#eda100;  /* slot 4 yellow */
+    --status-good:    #0ca30c;
+    --status-warning: #fab219;
+    --status-serious: #ec835a;
+    --status-critical:#d03b3b;
+    --accent:         #2F6E63;
+    --accent2:        #7A4E2D;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --surface-1:      #1a1a19;
+      --surface-2:      #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --gridline:       #2c2c2a;
+      --baseline:       #383835;
+      --border-hair:    rgba(255,255,255,0.10);
+      --card-bg:        #232322;
+      --panel-bg:       #202020;
+      --series-ev-grid: #3987e5;
+      --series-ice:     #d95926;
+      --series-hybrid:  #199e70;
+      --series-ev-solar:#c98500;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface-1:      #1a1a19;
+    --surface-2:      #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --gridline:       #2c2c2a;
+    --baseline:       #383835;
+    --border-hair:    rgba(255,255,255,0.10);
+    --card-bg:        #232322;
+    --panel-bg:       #202020;
+    --series-ev-grid: #3987e5;
+    --series-ice:     #d95926;
+    --series-hybrid:  #199e70;
+    --series-ev-solar:#c98500;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0;
+    background: var(--surface-2);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 24px 20px 80px; }
+
+  header.top { padding: 6px 0 18px; border-bottom: 1px solid var(--border-hair); margin-bottom: 22px; }
+  .kicker { font-size: 12px; letter-spacing: 0.12em; color: var(--accent); font-weight: 700; text-transform: uppercase; }
+  h1 { font-size: 26px; margin: 6px 0 8px; color: var(--text-primary); }
+  .sub { color: var(--text-secondary); font-size: 15px; max-width: 78ch; }
+  .theme-toggle {
+    position: absolute; top: 20px; right: 20px;
+    background: var(--card-bg); border: 1px solid var(--border-hair); color: var(--text-secondary);
+    border-radius: 6px; padding: 6px 10px; font-size: 12px; cursor: pointer;
+  }
+  .wrap { position: relative; }
+
+  .position-box {
+    background: var(--panel-bg); border-left: 3px solid var(--accent);
+    padding: 14px 18px; border-radius: 4px; margin-bottom: 26px; color: var(--text-primary); font-size: 14px;
+  }
+  .position-box b { color: var(--accent); }
+
+  /* Controls */
+  .controls {
+    background: var(--card-bg); border: 1px solid var(--border-hair); border-radius: 10px;
+    padding: 18px 20px; margin-bottom: 22px;
+  }
+  .controls h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); margin: 0 0 14px; }
+  .ctrl-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px,1fr)); gap: 18px 26px; }
+  .ctrl { }
+  .ctrl label { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; }
+  .ctrl label .val { font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .chem-toggle { display: flex; gap: 8px; }
+  .chem-btn {
+    flex: 1; padding: 8px 6px; border-radius: 6px; border: 1px solid var(--border-hair);
+    background: var(--panel-bg); color: var(--text-secondary); font-size: 13px; cursor: pointer; text-align: center;
+  }
+  .chem-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+  .grid-note { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+  .tab-btn {
+    padding: 9px 16px; border-radius: 8px 8px 0 0; border: 1px solid var(--border-hair); border-bottom: none;
+    background: var(--panel-bg); color: var(--text-secondary); font-size: 14px; cursor: pointer;
+  }
+  .tab-btn.active { background: var(--card-bg); color: var(--accent); font-weight: 700; border-bottom: 2px solid var(--card-bg); margin-bottom: -1px; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .usecase-note { font-size: 13px; color: var(--text-secondary); background: var(--card-bg); border: 1px solid var(--border-hair); border-radius: 8px; padding: 12px 16px; margin-bottom: 18px; }
+
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; margin-bottom: 18px; font-size: 13px; color: var(--text-secondary); }
+  .legend .item { display: flex; align-items: center; gap: 7px; }
+  .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+
+  /* dimension card */
+  .dim-card {
+    background: var(--card-bg); border: 1px solid var(--border-hair); border-radius: 10px;
+    padding: 16px 20px 14px; margin-bottom: 14px;
+  }
+  .dim-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; flex-wrap: wrap; gap: 6px;}
+  .dim-title { font-size: 14.5px; font-weight: 700; color: var(--text-primary); }
+  .dim-unit { font-size: 12px; color: var(--text-muted); }
+  .bar-row { display: grid; grid-template-columns: 92px 1fr 92px; align-items: center; gap: 10px; margin: 7px 0; }
+  .bar-label { font-size: 12.5px; color: var(--text-secondary); text-align: right; }
+  .bar-track { height: 16px; background: var(--gridline); border-radius: 8px; position: relative; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 8px; min-width: 3px; transition: width .25s ease; }
+  .bar-value { font-size: 12.5px; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+  .dim-foot { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+
+  /* battery chain breakdown */
+  .chain-card { background: var(--panel-bg); border-radius: 8px; padding: 14px 18px; margin-top: 6px; }
+  .chain-row { display: grid; grid-template-columns: 140px 1fr 60px; gap: 10px; align-items: center; margin: 6px 0; font-size: 13px; }
+  .chain-loc { color: var(--text-secondary); }
+  .chain-bar-track { height: 12px; background: var(--gridline); border-radius: 6px; overflow: hidden; }
+  .chain-bar-fill { height: 100%; border-radius: 6px; background: var(--series-ice); }
+  .chain-val { text-align: right; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+
+  .index-scale { font-size: 11.5px; color: var(--text-muted); margin-top: 4px; }
+
+  table.data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.data-table th, table.data-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--gridline); }
+  table.data-table th { color: var(--text-muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+  table.data-table td.num { font-variant-numeric: tabular-nums; }
+
+  .view-toggle { display: flex; gap: 8px; margin: 4px 0 18px; }
+  .view-btn { padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-hair); background: var(--panel-bg); color: var(--text-secondary); font-size: 12.5px; cursor: pointer; }
+  .view-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .section-h { font-size: 17px; font-weight: 700; color: var(--accent); margin: 34px 0 10px; padding-top: 16px; border-top: 1px solid var(--border-hair); }
+  .method-list { font-size: 13px; color: var(--text-secondary); }
+  .method-list li { margin-bottom: 8px; }
+  .gap-flag { color: var(--status-serious); font-weight: 600; }
+
+  footer { margin-top: 40px; font-size: 12px; color: var(--text-muted); border-top: 1px solid var(--border-hair); padding-top: 14px; }
+
+  @media (max-width: 640px) {
+    .bar-row { grid-template-columns: 76px 1fr 70px; }
+    .theme-toggle { position: static; margin-bottom: 10px; display: inline-block; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <button class="theme-toggle" id="themeToggle">Toggle theme</button>
+  <header class="top">
+    <div class="kicker">NMB Business Chamber — Simulation Tools</div>
+    <h1>South African Environmental Burden Index</h1>
+    <div class="sub">A wider lens than CO₂ alone: tailpipe and grid air pollutants, water use and contamination risk, coal-mining impact, and the battery value chain — including the mining, refining and manufacturing impacts that occur outside South Africa. Every input below is adjustable; treat the results as a sanity-check starting point, not a verdict.</div>
+  </header>
+
+  <div class="position-box">
+    <b>The Chamber's position:</b> CO₂ is one row in this index, not the organising principle. A vehicle's real environmental footprint includes local air quality (PM2.5, SOx, NOx from both tailpipe and power station), Eastern Cape and Mpumalanga water stress, and a battery supply chain whose worst pollution and human-health impacts — cobalt mining in the DRC, nickel mining in Indonesia, cell manufacturing on coal-heavy grids in China — occur far from South Africa but are real costs of the vehicle, wherever they fall. Judging electrification on tailpipe CO₂ alone hides most of this picture in both directions: it overstates ICE vehicles' exhaust-pipe pollution relative to their upstream footprint, and it understates EVs' full lifecycle burden by stopping counting at the exhaust pipe they don't have.
+  </div>
+
+  <!-- ============ GLOBAL CONTROLS ============ -->
+  <div class="controls">
+    <h2>Shared assumptions — adjust for your own scenario</h2>
+    <div class="ctrl-grid">
+      <div class="ctrl">
+        <label>Coal share of grid <span class="val" id="v-coal">65%</span></label>
+        <input type="range" id="s-coal" min="0" max="100" value="65">
+      </div>
+      <div class="ctrl">
+        <label>Nuclear share of grid <span class="val" id="v-nuclear">6%</span></label>
+        <input type="range" id="s-nuclear" min="0" max="100" value="6">
+      </div>
+      <div class="ctrl">
+        <label>Renewables share of grid <span class="val" id="v-renew">15%</span></label>
+        <input type="range" id="s-renew" min="0" max="100" value="15">
+      </div>
+      <div class="ctrl">
+        <label>Gas / other share of grid <span class="val" id="v-gas">14%</span></label>
+        <input type="range" id="s-gas" min="0" max="100" value="14">
+      </div>
+      <div class="ctrl">
+        <label>Battery chemistry</label>
+        <div class="chem-toggle">
+          <div class="chem-btn active" id="chem-nmc" data-chem="nmc">NMC811 (cobalt + nickel)</div>
+          <div class="chem-btn" id="chem-lfp" data-chem="lfp">LFP (no cobalt/nickel)</div>
+        </div>
+      </div>
+      <div class="ctrl">
+        <label>Vehicle lifetime <span class="val" id="v-life">12 yrs</span></label>
+        <input type="range" id="s-life" min="5" max="20" value="12">
+      </div>
+    </div>
+    <div class="grid-note" id="gridNote">Shares are normalised to 100% automatically as you move the sliders. Default reflects an approximate current Eskom generation mix; move the sliders to test a nuclear-led, renewables-led, or coal-heavy grid scenario.</div>
+  </div>
+
+  <!-- ============ TABS ============ -->
+  <div class="tabs" id="tabs">
+    <div class="tab-btn active" data-tab="passenger">Private Passenger</div>
+    <div class="tab-btn" data-tab="lastmile">Last-Mile Delivery</div>
+    <div class="tab-btn" data-tab="taxi">Minibus Taxi</div>
+    <div class="tab-btn" data-tab="microcar">Micro-Car</div>
+  </div>
+
+  <div class="view-toggle">
+    <div class="view-btn active" data-view="chart">Chart view</div>
+    <div class="view-btn" data-view="table">Table view</div>
+  </div>
+
+  <div id="panels"></div>
+
+  <!-- ============ METHODOLOGY ============ -->
+  <div class="section-h">Methodology &amp; sources</div>
+  <ul class="method-list">
+    <li><b>Grid-side emissions</b> (CO₂, SOx, NOx, PM, water) scale with the coal/nuclear/renewables/gas sliders above. Coal-plant factors are anchored to Eskom's own reported totals (≈1.6 Mt SO₂/yr, ≈804,000 t NOx/yr, ≈71 t particulates/yr — The Conversation, div. by an approximate 200 TWh/yr send-out) and to published water-intensity figures for wet- vs dry-cooled stations (historical average ≈1.44 L/kWh, dry-cooled Medupi/Matimba ≈0.1 L/kWh, wet-cooled ≈1.9 L/kWh — Renewable Matter). Nuclear and renewables factors are illustrative defaults pending Koeberg-specific figures; treat them as adjustable placeholders.</li>
+    <li><b>Tailpipe figures</b> (CO₂, NOx, PM, SOx) use typical published emission-factor ranges per fuel and vehicle class, and are placeholders pending full South African drive-cycle citation — substitute your own figures where you have better data.</li>
+    <li><b>Non-exhaust particulate matter</b> (tyre, brake and road wear) is modelled for every powertrain, not just ICE vehicles: independent research finds total PM10 roughly equal between EVs and modern ICE vehicles, with EVs only ≈1–3% lower on PM2.5, because EVs typically run ≈20–25% heavier than the equivalent ICE model (greencarcongress.com, citing 2016 study). This index applies a weight-based non-exhaust penalty to EV variants rather than crediting them with "zero particulates."</li>
+    <li><b>Battery value-chain pollution</b> is scored from published battery-manufacturing carbon intensities (NMC811 ≈38 kg CO₂e/kWh vs LFP ≈15 kg CO₂e/kWh — electrive.com) and is explicitly not confined to South Africa: the breakdown panel under each EV powertrain attributes a share of the burden to cobalt mining (DRC), nickel mining/refining (Indonesia), and cell/pack manufacturing (predominantly China, on a coal-heavy grid), reflecting where those impacts actually occur. Air-quality and water-contamination evidence for DRC cobalt-mining communities (Lualaba/Kolwezi) is drawn from on-the-ground reporting: ≈98% of hourly air-quality readings near mining areas exceeded WHO PM thresholds, with a school and a community water source directly affected (globalvoices.org, Aug 2026). NMC811's heavier reliance on cobalt and nickel is scored above LFP on this dimension; LFP removes cobalt/nickel exposure entirely but at a lithium/iron-phosphate footprint of its own.</li>
+    <li><b>Battery disposal / end-of-life risk</b> scales with battery size and chemistry. South Africa banned battery landfilling in 2021 but published, verifiable data on the country's actual current recycling *capacity* (as opposed to installed battery capacity, ≈1.3 GWh in 2023) could not be confirmed for this release — <span class="gap-flag">this is a disclosed data gap</span>, not a modelled zero. Treat the disposal-risk score as a relative indicator (bigger battery, more cobalt/nickel = higher risk) rather than a measured quantity.</li>
+    <li><b>Water contamination risk</b> and <b>coal-mining impact</b> are presented as adjustable 0–10 relative indices rather than false-precision physical units, because comparable per-kilometre South African figures do not exist in the public record. A specifically coal-related (rather than gold-mining) acid-mine-drainage figure for Mpumalanga could not be confirmed for this release — <span class="gap-flag">also a disclosed data gap</span> — the index scores are directional placeholders pending that citation.</li>
+    <li>All figures are Chamber working assumptions for a sanity-check tool, not a certified life-cycle-assessment. Where your own data is better, override these defaults.</li>
+  </ul>
+
+  <footer>
+    NMB Business Chamber · Environmental Burden Index · Companion tool to "Beyond the Tailpipe: A South African Environmental Burden Index" position paper · Figures are illustrative defaults for planning purposes, not certified emissions or life-cycle-assessment data.
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- Theme toggle ----------
+  var themeBtn = document.getElementById('themeToggle');
+  themeBtn.addEventListener('click', function(){
+    var root = document.documentElement;
+    var cur = root.getAttribute('data-theme');
+    if (cur === 'dark') root.setAttribute('data-theme','light');
+    else if (cur === 'light') root.removeAttribute('data-theme');
+    else root.setAttribute('data-theme','dark');
+  });
+
+  // ---------- Grid mix sliders (auto-normalise) ----------
+  var sliders = { coal: 65, nuclear: 6, renew: 15, gas: 14 };
+  var sIds = { coal:'s-coal', nuclear:'s-nuclear', renew:'s-renew', gas:'s-gas' };
+  var vIds = { coal:'v-coal', nuclear:'v-nuclear', renew:'v-renew', gas:'v-gas' };
+
+  function normaliseAndRender(changedKey){
+    var total = sliders.coal + sliders.nuclear + sliders.renew + sliders.gas;
+    if (total <= 0) total = 1;
+    // scale all to sum to 100, keep changedKey's relative proportion stable-ish
+    Object.keys(sliders).forEach(function(k){
+      sliders[k] = Math.max(0, Math.round(sliders[k] * 100 / total));
+    });
+    // fix rounding drift on the changed key
+    var sum2 = sliders.coal + sliders.nuclear + sliders.renew + sliders.gas;
+    sliders[changedKey] += (100 - sum2);
+    Object.keys(sliders).forEach(function(k){
+      document.getElementById(sIds[k]).value = sliders[k];
+      document.getElementById(vIds[k]).textContent = sliders[k] + '%';
+    });
+    renderAll();
+  }
+
+  Object.keys(sIds).forEach(function(k){
+    document.getElementById(sIds[k]).addEventListener('input', function(e){
+      sliders[k] = parseInt(e.target.value, 10);
+      normaliseAndRender(k);
+    });
+  });
+
+  // ---------- Battery chemistry ----------
+  var chemistry = 'nmc';
+  document.getElementById('chem-nmc').addEventListener('click', function(){ setChem('nmc'); });
+  document.getElementById('chem-lfp').addEventListener('click', function(){ setChem('lfp'); });
+  function setChem(c){
+    chemistry = c;
+    document.getElementById('chem-nmc').classList.toggle('active', c === 'nmc');
+    document.getElementById('chem-lfp').classList.toggle('active', c === 'lfp');
+    renderAll();
+  }
+
+  // ---------- Vehicle lifetime ----------
+  var lifetime = 12;
+  document.getElementById('s-life').addEventListener('input', function(e){
+    lifetime = parseInt(e.target.value, 10);
+    document.getElementById('v-life').textContent = lifetime + ' yrs';
+    renderAll();
+  });
+
+  // ---------- View toggle (chart / table) ----------
+  var view = 'chart';
+  document.querySelectorAll('.view-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      view = btn.getAttribute('data-view');
+      document.querySelectorAll('.view-btn').forEach(function(b){ b.classList.toggle('active', b === btn); });
+      renderAll();
+    });
+  });
+
+  // ---------- Tabs ----------
+  var activeTab = 'passenger';
+  document.querySelectorAll('.tab-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      activeTab = btn.getAttribute('data-tab');
+      document.querySelectorAll('.tab-btn').forEach(function(b){ b.classList.toggle('active', b === btn); });
+      renderAll();
+    });
+  });
+
+  // ---------- Use-case definitions ----------
+  // Each use case lists the powertrains that calculator family actually offers,
+  // mirroring the Chamber's four existing TCO calculators.
+  var USECASES = {
+    passenger: {
+      label: "Private passenger vehicle",
+      note: "Mirrors the Passenger Vehicle TCO calculator: petrol ICE, plug-less hybrid, grid-charged EV and home-solar-charged EV, over a typical 15,000 km/year private driving pattern.",
+      annualKm: 15000,
+      battery: 60,
+      weightFactor: 1.0,
+      powertrains: ['ice','hybrid','ev-grid','ev-solar'],
+      iceFuel: 'petrol'
+    },
+    lastmile: {
+      label: "Last-mile delivery van",
+      note: "Mirrors the Last-Mile Delivery Fleet TCO calculator: diesel van vs. grid-charged EV van, over a higher-mileage stop-start urban duty cycle (30,000 km/year).",
+      annualKm: 30000,
+      battery: 80,
+      weightFactor: 1.35,
+      powertrains: ['ice','ev-grid'],
+      iceFuel: 'diesel'
+    },
+    taxi: {
+      label: "Minibus taxi",
+      note: "Mirrors the Minibus Taxi TCO calculator: diesel minibus vs. grid-charged electric minibus, over intensive fixed-route use (60,000 km/year).",
+      annualKm: 60000,
+      battery: 100,
+      weightFactor: 1.5,
+      powertrains: ['ice','ev-grid'],
+      iceFuel: 'diesel'
+    },
+    microcar: {
+      label: "Household micro-car (second vehicle)",
+      note: "Mirrors CarCost Compare: a small petrol runabout vs. a solar-assisted micro-EV, over modest urban-only use (10,000 km/year).",
+      annualKm: 10000,
+      battery: 25,
+      weightFactor: 0.75,
+      powertrains: ['ice','ev-grid','ev-solar'],
+      iceFuel: 'petrol'
+    }
+  };
+
+  var POWERTRAIN_META = {
+    'ice':      { label: 'ICE', color: 'var(--series-ice)' },
+    'hybrid':   { label: 'Hybrid', color: 'var(--series-hybrid)' },
+    'ev-grid':  { label: 'EV (grid)', color: 'var(--series-ev-grid)' },
+    'ev-solar': { label: 'EV (home solar)', color: 'var(--series-ev-solar)' }
+  };
+
+  // ---------- Grid-side per-kWh factors (illustrative defaults) ----------
+  var SOURCE_FACTORS = {
+    coal:     { co2: 900, sox: 8.0,  nox: 4.0,  pm: 0.35, water: 1.44, coalImpact: 10, waterRisk: 8 },
+    nuclear:  { co2: 12,  sox: 0.02, nox: 0.02, pm: 0.01, water: 2.0,  coalImpact: 0,  waterRisk: 2 },
+    renew:    { co2: 15,  sox: 0.01, nox: 0.01, pm: 0.01, water: 0.1,  coalImpact: 0,  waterRisk: 0.5 },
+    gas:      { co2: 450, sox: 0.5,  nox: 1.2,  pm: 0.05, water: 0.5,  coalImpact: 0,  waterRisk: 2.5 }
+  };
+
+  function gridBlend(field){
+    var shares = { coal: sliders.coal/100, nuclear: sliders.nuclear/100, renew: sliders.renew/100, gas: sliders.gas/100 };
+    var v = 0;
+    Object.keys(shares).forEach(function(k){ v += shares[k] * SOURCE_FACTORS[k][field]; });
+    return v;
+  }
+
+  // EV efficiency (kWh/km) roughly by use-case weight class
+  function evEfficiency(uc){ return 0.16 * uc.weightFactor; } // kWh/km
+
+  // ICE tailpipe factors per fuel (g/km) — illustrative, placeholders
+  var ICE_FACTORS = {
+    petrol: { co2: 165, nox: 0.35, pm: 0.02, sox: 0.015 },
+    diesel: { co2: 200, nox: 1.1,  pm: 0.03, sox: 0.02 }
+  };
+  var HYBRID_MULT = 0.62; // hybrid ~38% lower tailpipe than equivalent petrol ICE
+
+  function nonExhaustPM(uc, isEV){
+    var base = 0.045; // g/km baseline for tyre/brake/road wear, mid-size vehicle
+    var wf = uc.weightFactor * (isEV ? 1.22 : 1.0); // EVs run ~20-25% heavier
+    return base * wf;
+  }
+
+  function co2FromFuel(uc, fuel){ return ICE_FACTORS[fuel].co2; }
+
+  // ---------- Battery value-chain factors ----------
+  var BATTERY_MFG_CO2E = { nmc: 38, lfp: 15 }; // kg CO2e / kWh
+  var BATTERY_CHAIN_SHARE = {
+    // relative share of value-chain burden by geography, chemistry-dependent
+    nmc: { sa: 0.10, drc: 0.34, indonesia: 0.22, china: 0.34 },
+    lfp: { sa: 0.14, drc: 0.03, indonesia: 0.05, china: 0.78 }
+  };
+  var BATTERY_DISPOSAL_INDEX = { nmc: 7.4, lfp: 5.1 }; // 0-10, per kWh-normalised baseline
+
+  function dim(id, title, unit){ return { id:id, title:title, unit:unit }; }
+
+  var DIMENSIONS = [
+    dim('co2', 'CO₂-equivalent (tailpipe + grid, life-cycle)', 'g CO₂e / km'),
+    dim('pm25', 'PM2.5 (tailpipe + grid + non-exhaust wear)', 'mg / km'),
+    dim('sox', 'Sulphur oxides (SOx, tailpipe + grid)', 'mg / km'),
+    dim('nox', 'Nitrogen oxides (NOx, tailpipe + grid)', 'mg / km'),
+    dim('water', 'Water consumption (fuel refining / power generation)', 'mL / km'),
+    dim('waterrisk', 'Water contamination risk', 'index 0–10'),
+    dim('coalimpact', 'Coal-mining & ecosystem impact', 'index 0–10'),
+    dim('battery', 'Battery value-chain pollution (incl. impacts outside SA)', 'index 0–10'),
+    dim('disposal', 'Battery end-of-life / disposal risk', 'index 0–10')
+  ];
+
+  function computeValues(uc, ptKey){
+    var isEV = ptKey.indexOf('ev') === 0;
+    var isHybrid = ptKey === 'hybrid';
+    var fuel = uc.iceFuel;
+    var out = {};
+
+    if (isEV){
+      var eff = evEfficiency(uc); // kWh/km
+      var solar = (ptKey === 'ev-solar');
+      // solar-charged EV assumed to draw ~70% of energy from home solar (0 grid burden), 30% from grid as backup
+      var gridShare = solar ? 0.30 : 1.0;
+
+      out.co2 = eff * gridBlend('co2') * gridShare;
+      out.sox = eff * gridBlend('sox') * 1000 * gridShare; // g->mg
+      out.nox = eff * gridBlend('nox') * 1000 * gridShare;
+      var gridPM = eff * gridBlend('pm') * 1000 * gridShare;
+      out.pm25 = gridPM + nonExhaustPM(uc, true) * 1000 * 0.6; // 60% of non-exhaust wear counted as PM2.5 fraction
+      out.water = eff * gridBlend('water') * 1000 * gridShare; // L -> mL
+      out.waterrisk = gridBlend('waterRisk') * gridShare + 1.2; // +1.2 baseline for battery-chain water impact
+      out.coalimpact = gridBlend('coalImpact') * gridShare;
+
+      var chem = chemistry;
+      var battKwh = uc.battery;
+      var mfgCO2 = BATTERY_MFG_CO2E[chem] * battKwh; // total kg over battery life
+      var lifetimeKm = uc.annualKm * lifetime;
+      out.co2 += (mfgCO2 * 1000) / lifetimeKm; // amortise manufacturing CO2 per km, g/km
+      var chainSeverity = (chem === 'nmc') ? 8.6 : 4.0; // qualitative severity incl. DRC/Indonesia impacts
+      out.battery = chainSeverity;
+      out.disposal = BATTERY_DISPOSAL_INDEX[chem] * (battKwh / 60); // scaled to battery size, 60kWh reference
+      out.disposal = Math.min(10, out.disposal);
+    } else {
+      var f = ICE_FACTORS[fuel];
+      var mult = isHybrid ? HYBRID_MULT : 1.0;
+      out.co2 = f.co2 * mult * uc.weightFactor;
+      out.sox = f.sox * mult * uc.weightFactor * 1000;
+      out.nox = f.nox * mult * uc.weightFactor * 1000;
+      out.pm25 = (f.pm * mult * uc.weightFactor * 1000) + nonExhaustPM(uc,false) * 1000 * 0.6;
+      out.water = (fuel === 'diesel' ? 14 : 12) * mult; // mL/km refinery water, illustrative
+      out.waterrisk = 3.0; // refinery effluent / oil-spill baseline risk
+      out.coalimpact = 0.3; // negligible direct coal linkage for liquid fuels
+      out.battery = 0;
+      out.disposal = 0.4; // lead-acid/12V + fluids disposal baseline
+    }
+    return out;
+  }
+
+  // ---------- Rendering ----------
+  var panelsEl = document.getElementById('panels');
+
+  function fmt(v){
+    if (v >= 100) return Math.round(v).toString();
+    if (v >= 10) return v.toFixed(1);
+    return v.toFixed(2);
+  }
+
+  function renderAll(){
+    var uc = USECASES[activeTab];
+    var pts = uc.powertrains;
+    var values = {};
+    pts.forEach(function(pt){ values[pt] = computeValues(uc, pt); });
+
+    var html = '';
+    html += '<div class="usecase-note"><b>' + uc.label + '</b> — ' + uc.note + ' Assumed annual distance: ' + uc.annualKm.toLocaleString() + ' km/year. Battery pack: ' + uc.battery + ' kWh. Vehicle lifetime: ' + lifetime + ' years.</div>';
+
+    html += '<div class="legend">';
+    pts.forEach(function(pt){
+      html += '<div class="item"><span class="swatch" style="background:' + POWERTRAIN_META[pt].color + '"></span>' + POWERTRAIN_META[pt].label + '</div>';
+    });
+    html += '</div>';
+
+    if (view === 'table'){
+      html += renderTable(uc, pts, values);
+    } else {
+      DIMENSIONS.forEach(function(d){
+        // battery/disposal dims only meaningful for EV rows, but show all pts (ICE = 0 or baseline)
+        var max = 0;
+        pts.forEach(function(pt){ max = Math.max(max, values[pt][d.id]); });
+        if (max <= 0) max = 1;
+        html += '<div class="dim-card">';
+        html += '<div class="dim-head"><div class="dim-title">' + d.title + '</div><div class="dim-unit">' + d.unit + '</div></div>';
+        pts.forEach(function(pt){
+          var v = values[pt][d.id];
+          var pct = Math.max(2, Math.round((v / max) * 100));
+          html += '<div class="bar-row">';
+          html += '<div class="bar-label">' + POWERTRAIN_META[pt].label + '</div>';
+          html += '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%;background:' + POWERTRAIN_META[pt].color + '"></div></div>';
+          html += '<div class="bar-value">' + fmt(v) + '</div>';
+          html += '</div>';
+        });
+        if (d.id === 'battery'){
+          html += renderChainBreakdown();
+        }
+        html += '</div>';
+      });
+    }
+
+    panelsEl.innerHTML = html;
+  }
+
+  function renderChainBreakdown(){
+    var share = BATTERY_CHAIN_SHARE[chemistry];
+    var labels = { sa: 'South Africa (assembly)', drc: 'DRC (cobalt mining)', indonesia: 'Indonesia (nickel mining/refining)', china: 'China (cell manufacturing)' };
+    var html = '<div class="chain-card"><div style="font-size:12.5px;color:var(--text-secondary);margin-bottom:8px;"><b>Where this burden actually falls</b> — ' + (chemistry === 'nmc' ? 'NMC811' : 'LFP') + ' chemistry:</div>';
+    Object.keys(labels).forEach(function(k){
+      var pct = Math.round(share[k] * 100);
+      html += '<div class="chain-row"><div class="chain-loc">' + labels[k] + '</div><div class="chain-bar-track"><div class="chain-bar-fill" style="width:' + pct + '%"></div></div><div class="chain-val">' + pct + '%</div></div>';
+    });
+    html += '<div class="index-scale">Share of total battery value-chain pollution burden attributed to each stage/location. NMC811 shifts most of the burden to DRC cobalt and Indonesian nickel mining; LFP removes those exposures but concentrates more of the (smaller) remaining burden in Chinese cell manufacturing.</div></div>';
+    return html;
+  }
+
+  function renderTable(uc, pts, values){
+    var html = '<div class="dim-card"><table class="data-table"><thead><tr><th>Dimension</th>';
+    pts.forEach(function(pt){ html += '<th>' + POWERTRAIN_META[pt].label + '</th>'; });
+    html += '</tr></thead><tbody>';
+    DIMENSIONS.forEach(function(d){
+      html += '<tr><td>' + d.title + ' <span style="color:var(--text-muted)">(' + d.unit + ')</span></td>';
+      pts.forEach(function(pt){ html += '<td class="num">' + fmt(values[pt][d.id]) + '</td>'; });
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+    return html;
+  }
+
+  renderAll();
+})();
+</script>
+</body>
+</html>
